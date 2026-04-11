@@ -1,0 +1,8 @@
+-Diseases:
+   https://www.kaggle.com/datasets/tedisetiady/leaf-rice-disease-indonesia/data
+   https://www.kaggle.com/datasets/nirmalsankalana/rice-leaf-disease-image
+-Pest:
+   https://www.kaggle.com/datasets/rtlmhjbn/ip02-dataset
+   https://www.kaggle.com/datasets/mathumithram/rice-pest-detection
+-vocie based ekata apita data set ekak hadhaganna one famersla hamba wela
+-knowlage based chat bot seen ekata documents, tables, text files, pdf files
