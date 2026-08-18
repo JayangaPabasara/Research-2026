@@ -1,0 +1,9 @@
+{
+  "app": { "name": "PaddyGuard AI", "tagline": "Rice Disease & Pest Management" },
+  "nav": { "home": "Home", "voice": "Voice Diagnosis", "leaf": "Leaf Disease", "pest": "Pest Detection", "treatment": "Treatment", "report": "Report" },
+  "voice": { "title": "Voice Diagnosis", "record": "Start Recording", "stop": "Stop Recording", "processing": "Processing...", "placeholder": "Describe your paddy symptoms in Sinhala" },
+  "result": { "disease": "Disease", "confidence": "Confidence", "followup": "Need more information", "ood": "Cannot identify disease" },
+  "ood": { "title": "Unable to Identify", "message": "Please describe your paddy plant symptoms more clearly.", "retry": "Try Again" },
+  "healthy": { "title": "Healthy", "message": "Your paddy plant appears healthy. No disease detected." },
+  "errors": { "generic": "Something went wrong. Please try again.", "network": "Network error. Please check your connection." }
+}
