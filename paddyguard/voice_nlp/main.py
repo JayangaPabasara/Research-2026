@@ -1,42 +1,73 @@
 """
 PaddyGuard AI — C1 Voice NLP Service
 Owner: Jayonga Weerasinghe (IT22273680)
-Handles: Sinhala ASR -> Translation -> NLP Classification -> OOD -> TTS
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import os
+import logging, os
 
 load_dotenv()
+logging.basicConfig(
+    level   = logging.INFO,
+    format  = "%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
+    datefmt = "%H:%M:%S",
+)
+logger = logging.getLogger("voice_nlp")
 
 from api.endpoints import router
+from pipeline.classifier import load_models
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ──────────────────────────────────────────────────────
+    logger.info("=" * 50)
+    logger.info("  PaddyGuard AI — C1 Voice NLP Service starting")
+    logger.info("=" * 50)
+    logger.info("Loading SVM classifier and TF-IDF vectoriser...")
+    load_models()
+    logger.info("All models loaded — ready to serve on port %s",
+                os.getenv("SERVICE_PORT", "8001"))
+    yield
+    # ── Shutdown ─────────────────────────────────────────────────────
+    logger.info("Voice NLP Service shutting down")
+
 
 app = FastAPI(
-    title="PaddyGuard AI — Voice NLP Service",
-    description="C1: Sinhala voice to rice disease classification",
-    version="1.0.0"
+    title       = "PaddyGuard AI — Voice NLP Service",
+    description = "C1: Sinhala voice to rice disease classification",
+    version     = "1.0.0",
+    lifespan    = lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins  = ["*"],
+    allow_methods  = ["*"],
+    allow_headers  = ["*"],
 )
 
 app.include_router(router)
 
+
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "voice_nlp", "component": "C1"}
+    return {
+        "status"   : "ok",
+        "service"  : "voice_nlp",
+        "component": "C1",
+        "version"  : "1.0.0",
+    }
 
-@app.on_event("startup")
-async def startup():
-    print("[voice_nlp] C1 Voice NLP Service started on port 8001")
-    print("[voice_nlp] Loading SVM classifier and TF-IDF vectoriser...")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0",
-                port=int(os.getenv("SERVICE_PORT", 8001)), reload=True)
+    uvicorn.run(
+        "main:app",
+        host      = "0.0.0.0",
+        port      = int(os.getenv("SERVICE_PORT", 8001)),
+        reload    = True,
+        log_level = "info",
+    )
