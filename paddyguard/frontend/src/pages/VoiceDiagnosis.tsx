@@ -1,343 +1,227 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useDropzone } from "react-dropzone";
-import toast from "react-hot-toast";
-import {
-  ArrowLeft,
-  Info,
-  Mic,
-  UploadCloud,
-  CheckCircle,
-  Loader2,
-  Circle,
-} from "lucide-react";
-import { useAudioRecorder } from "../hooks/useAudioRecorder";
-import { useDiagnosis } from "../hooks/useDiagnosis";
-import VoiceRecorder from "../components/VoiceRecorder";
-import DiagnosisResult from "../components/DiagnosisResult";
-import FollowUpDialog from "../components/FollowUpDialog";
-import OODWarning from "../components/OODWarning";
+import { useRef, useState } from 'react'
+import type { ChangeEvent } from 'react'
+import { Mic, Square, UploadCloud } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import DiagnosisResult from '@/components/voice/DiagnosisResult'
+import FollowUpDialog from '@/components/voice/FollowUpDialog'
+import OODWarning from '@/components/voice/OODWarning'
+import { useAudioRecorder } from '@/hooks/useAudioRecorder'
+import { diagnoseVoice, submitFollowUp } from '@/lib/voiceApi'
+import type { VoiceDiagnosisResult } from '@/lib/voiceApi'
+import { useAuthStore } from '@/store/authStore'
+import { useDiagnosisStore } from '@/store/diagnosisStore'
 
-type Phase = "idle" | "recording" | "analysing" | "result";
+type Stage = 'idle' | 'recording' | 'analysing' | 'result' | 'followup' | 'ood'
 
 const EXAMPLES = [
-  "ගොයම් කොළ ආන්තරේ කහ පාට රේඛා",
-  "කොළ ගාව පොඩි දුඹුරු ලප ගොඩාක්",
-  "ඩයිමන්ඩ් හැඩ අළු ලකුණු",
-];
+  'කොළ වල දුඹුරු පැහැති පුල්ලි තියෙනවා',
+  'කොළ වල කහ පාට වළල්ලක් සහිත තිත් තියෙනවා',
+  'ගස මැළවී වියළී යනවා',
+]
 
-const STEP_LABELS = [
-  "හඬ Sinhala text බවට | Transcribed",
-  "ඉංග්‍රීසියට පරිවර්තනය | Translating...",
-  "රෝගය වර්ගීකරණය | Classifying...",
-];
+export default function VoiceDiagnosis() {
+  const [stage, setStage] = useState<Stage>('idle')
+  const [result, setResult] = useState<VoiceDiagnosisResult | null>(null)
+  const [followupLoading, setFollowupLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const recorder = useAudioRecorder()
+  const user = useAuthStore((s) => s.user)
+  const addVoiceEntry = useDiagnosisStore((s) => s.addVoiceEntry)
 
-// Minimal typing for the vendor-prefixed Web Speech API used for follow-up voice answers.
-interface SpeechRecognitionLike extends EventTarget {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start: () => void;
-  stop: () => void;
-  onresult: ((event: any) => void) | null;
-  onerror: ((event: any) => void) | null;
-  onend: (() => void) | null;
-}
-
-const getSpeechRecognition = (): (new () => SpeechRecognitionLike) | null => {
-  const w = window as unknown as {
-    SpeechRecognition?: new () => SpeechRecognitionLike;
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-  };
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
-};
-
-const VoiceDiagnosis: React.FC = () => {
-  const navigate = useNavigate();
-  const {
-    isRecording,
-    audioBlob,
-    duration,
-    error: recorderError,
-    startRecording,
-    stopRecording,
-    clearRecording,
-  } = useAudioRecorder();
-  const { diagnose, followup, isLoading, result, followupState, clearResult } =
-    useDiagnosis();
-
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [step, setStep] = useState(0);
-  const [followupRecording, setFollowupRecording] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-
-  useEffect(() => {
-    if (recorderError) {
-      toast.error("මයික්‍රෆෝන අවසර අවශ්‍යයි | Microphone permission required");
-      setPhase("idle");
+  function handleResult(data: VoiceDiagnosisResult) {
+    setResult(data)
+    if (data.is_ood) {
+      setStage('ood')
+    } else if (data.needs_followup) {
+      setStage('followup')
+    } else {
+      setStage('result')
+      if (user) {
+        addVoiceEntry({
+          disease: data.disease,
+          confidence: data.confidence,
+          is_ood: data.is_ood,
+          sinhala_transcript: data.sinhala_transcript || '',
+          english_translation: data.english_translation || '',
+          all_scores: data.all_scores,
+          userId: user.id,
+        })
+      }
     }
-  }, [recorderError]);
+  }
 
-  // Once a recording (or upload) finishes, kick off the diagnosis request.
-  useEffect(() => {
-    if (audioBlob && phase !== "analysing") {
-      setPhase("analysing");
-      setStep(0);
-      diagnose(audioBlob);
+  async function runDiagnosis(blob: Blob, filename: string) {
+    setStage('analysing')
+    try {
+      const data = await diagnoseVoice(blob, filename)
+      handleResult(data)
+    } catch {
+      toast.error('රෝග විනිශ්චය අසාර්ථක විය | Diagnosis failed')
+      setStage('idle')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [audioBlob]);
+  }
 
-  useEffect(() => {
-    if (phase === "analysing") {
-      const t1 = setTimeout(() => setStep(1), 600);
-      const t2 = setTimeout(() => setStep(2), 1400);
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
+  async function handleStop() {
+    const recording = await recorder.stop()
+    if (recording) await runDiagnosis(recording.blob, recording.filename)
+    else setStage('idle')
+  }
+
+  async function handleStart() {
+    setStage('recording')
+    await recorder.start()
+    if (recorder.error) {
+      toast.error(recorder.error)
+      setStage('idle')
     }
-  }, [phase]);
+  }
 
-  useEffect(() => {
-    if (!isLoading && result && phase === "analysing") {
-      setPhase("result");
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) runDiagnosis(file, file.name)
+    e.target.value = ''
+  }
+
+  async function handleFollowUpAnswer(answer: string) {
+    if (!result?.session_id) return
+    setFollowupLoading(true)
+    try {
+      const data = await submitFollowUp(answer, result.session_id)
+      handleResult(data)
+    } catch {
+      toast.error('පිළිතුර යැවීම අසාර්ථක විය | Failed to submit answer')
+    } finally {
+      setFollowupLoading(false)
     }
-  }, [isLoading, result, phase]);
+  }
 
-  const handleStart = useCallback(() => {
-    clearResult();
-    startRecording();
-    setPhase("recording");
-  }, [clearResult, startRecording]);
-
-  const handleStop = useCallback(() => {
-    stopRecording();
-  }, [stopRecording]);
-
-  const handleRetry = useCallback(() => {
-    clearRecording();
-    clearResult();
-    setPhase("idle");
-  }, [clearRecording, clearResult]);
-
-  const { getRootProps, getInputProps } = useDropzone({
-    accept: { "audio/*": [] },
-    multiple: false,
-    onDrop: (accepted) => {
-      const file = accepted[0];
-      if (!file) return;
-      clearResult();
-      setPhase("analysing");
-      setStep(0);
-      diagnose(file);
-    },
-  });
-
-  const startFollowupVoiceAnswer = () => {
-    const SpeechRecognitionCtor = getSpeechRecognition();
-    if (!SpeechRecognitionCtor) {
-      toast("හඬ පිළිතුරු සහාය නොදක්වයි — Yes/No භාවිතා කරන්න", { icon: "ℹ️" });
-      return;
-    }
-    const recognition = new SpeechRecognitionCtor();
-    recognition.lang = "si-LK";
-    recognition.interimResults = false;
-    recognition.continuous = false;
-    recognition.onresult = (event: any) => {
-      const transcript = event.results?.[0]?.[0]?.transcript;
-      if (transcript) followup(transcript);
-    };
-    recognition.onerror = () => {
-      toast.error("හඬ හඳුනාගැනීම අසාර්ථකයි | Voice recognition failed");
-    };
-    recognition.onend = () => setFollowupRecording(false);
-    recognitionRef.current = recognition;
-    recognition.start();
-    setFollowupRecording(true);
-  };
-
-  const stopFollowupVoiceAnswer = () => {
-    recognitionRef.current?.stop();
-    setFollowupRecording(false);
-  };
-
-  const handleFollowupAnswer = (answer: string) => {
-    followup(answer);
-  };
-
-  const handleFollowupSkip = () => {
-    followup("");
-  };
-
-  useEffect(() => {
-    if (followupState.active) setPhase("result");
-  }, [followupState.active]);
+  function reset() {
+    setResult(null)
+    setStage('idle')
+  }
 
   return (
-    <div className="relative min-h-screen">
-      <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 active:scale-[0.96]"
-        >
-          <ArrowLeft size={20} className="text-forest" />
-        </button>
-        <h1 className="font-sinhala flex items-center gap-2 text-base font-bold text-forest">
-          හඬ රෝග නිර්ණය
-          {phase === "recording" && (
-            <span className="h-2 w-2 animate-pulse rounded-full bg-red-soft" />
-          )}
-        </h1>
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200 active:scale-[0.96]"
-        >
-          <Info size={18} className="text-forest" />
-        </button>
-      </div>
-
-      {phase === "idle" && (
-        <div className="animate-fade-in flex flex-col">
-          <div className="mx-4 mt-4 flex gap-3 rounded-2xl border-l-4 border-forest bg-beige p-4">
-            <Mic size={22} className="mt-0.5 shrink-0 text-amber" />
-            <div>
-              <p className="font-sinhala text-sm text-forest">
-                ගොයම් රෝගයේ ලක්ෂණ ගැන සිංහලෙන් කතා කරන්න
-              </p>
-              <p className="mt-1 text-xs text-gray-muted">
-                Describe your paddy disease symptoms in Sinhala
-              </p>
+    <div className="mx-auto max-w-xl space-y-6">
+      {stage === 'idle' && (
+        <>
+          <Card className="border-l-4 border-amber bg-beige">
+            <div className="flex items-start gap-3">
+              <Mic className="mt-0.5 h-5 w-5 shrink-0 text-amber" />
+              <div>
+                <p className="font-sinhala font-medium text-forest">ගොයම් රෝගයේ ලක්ෂණ ගැන සිංහලෙන් කතා කරන්න</p>
+                <p className="text-sm text-forest-muted">Describe your paddy disease symptoms in Sinhala</p>
+              </div>
             </div>
+          </Card>
+
+          <div className="flex flex-col items-center gap-3 py-4">
+            <button
+              onClick={handleStart}
+              className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-forest bg-white shadow-2xl transition-transform active:scale-95"
+            >
+              <Mic className="h-12 w-12 text-forest" />
+            </button>
+            <p className="text-sm text-forest-muted">ස්පර්ශ කරන්න | Tap to record</p>
           </div>
 
-          <div className="mt-12 flex justify-center">
-            <VoiceRecorder
-              isRecording={false}
-              duration={0}
-              onStart={handleStart}
-              onStop={handleStop}
-            />
-          </div>
-
-          <div className="mx-4 mt-8 flex items-center gap-3">
+          <div className="flex items-center gap-3 text-forest-muted">
             <div className="h-px flex-1 bg-beige" />
-            <span className="font-sinhala text-xs text-gray-muted">හෝ | or</span>
+            <span className="text-xs">හෝ | or</span>
             <div className="h-px flex-1 bg-beige" />
           </div>
 
-          <div
-            {...getRootProps()}
-            className="mx-4 mt-4 flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-forest/20 bg-beige transition-all duration-200 active:scale-[0.96]"
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-beige bg-beige/40 px-4 py-6 text-center hover:border-amber"
           >
-            <input {...getInputProps()} />
-            <UploadCloud size={18} className="text-amber" />
-            <span className="font-sinhala text-sm text-forest">
-              ශ්‍රව්‍ය ගොනුවක් ඇතුළු කරන්න | Upload audio
-            </span>
-          </div>
+            <UploadCloud className="h-6 w-6 text-amber" />
+            <span className="font-sinhala text-sm text-forest">ශ්‍රව්‍ය ගොනුවක් ඇතුළු කරන්න</span>
+            <span className="text-xs text-forest-muted">.ogg .mp3 .wav .webm .m4a</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".ogg,.mp3,.wav,.webm,.m4a,audio/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
 
-          <div className="mx-4 mb-6 mt-6 rounded-2xl bg-white p-4 shadow-card">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-amber">
-              උදාහරණ ලක්ෂණ | Example symptoms
-            </p>
-            <div className="mt-2 flex flex-col gap-2">
+          <Card>
+            <p className="mb-3 text-xs font-semibold uppercase text-forest-muted">Example Symptoms</p>
+            <div className="space-y-2">
               {EXAMPLES.map((ex) => (
                 <div key={ex} className="flex items-center gap-2">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-soft" />
-                  <span className="font-sinhala text-sm text-forest">{ex}</span>
+                  <span className="font-sinhala text-sm text-forest-light">{ex}</span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </Card>
+        </>
       )}
 
-      {phase === "recording" && (
-        <div className="animate-fade-in flex flex-col">
-          <div className="mx-4 mt-4 min-h-16 rounded-2xl bg-beige p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-muted">
-              සජීව පිටපත | Live transcript
-            </p>
-            <p className="font-sinhala mt-2 italic text-forest">
-              සවන් දෙමින්...
-              <span className="animate-pulse">▍</span>
-            </p>
+      {stage === 'recording' && (
+        <div className="flex flex-col items-center gap-6 py-6">
+          <div className="relative flex h-32 w-32 items-center justify-center">
+            <span className="absolute h-40 w-40 animate-recording-ring rounded-full border-2 border-red-400" />
+            <button
+              onClick={handleStop}
+              className="relative flex h-32 w-32 items-center justify-center rounded-full border-4 border-red-soft bg-red-50 shadow-2xl"
+            >
+              <Square className="h-10 w-10 text-red-soft" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-red-soft">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-red-soft" />
+            <span>
+              {String(Math.floor(recorder.seconds / 60)).padStart(1, '0')}:
+              {String(recorder.seconds % 60).padStart(2, '0')} · පටිගත වෙමින්
+            </span>
           </div>
 
-          <div className="mt-8 flex justify-center">
-            <VoiceRecorder
-              isRecording
-              duration={duration}
-              onStart={handleStart}
-              onStop={handleStop}
-            />
-          </div>
-        </div>
-      )}
-
-      {phase === "analysing" && (
-        <div className="animate-fade-in flex flex-col items-center px-4 pt-16 opacity-95">
-          <Loader2 size={64} className="animate-spin text-forest" strokeWidth={1.5} />
-          <p className="font-sinhala mt-4 text-lg font-bold text-forest">
-            විශ්ලේෂණය කරමින් | Analysing...
-          </p>
-
-          <div className="mt-6 flex w-full flex-col gap-3">
-            {STEP_LABELS.map((label, i) => (
-              <div key={label} className="flex items-center gap-3">
-                {i < step ? (
-                  <CheckCircle size={18} className="shrink-0 text-green-soft" />
-                ) : i === step ? (
-                  <Loader2 size={18} className="shrink-0 animate-spin text-amber" />
-                ) : (
-                  <Circle size={18} className="shrink-0 text-gray-muted" />
-                )}
-                <span className="font-sinhala text-sm text-forest">{label}</span>
-              </div>
+          <div className="flex h-12 items-end gap-1">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <span
+                key={i}
+                className="w-1.5 animate-pulse rounded-full bg-amber"
+                style={{ height: `${20 + ((i * 37) % 60)}%`, animationDelay: `${i * 60}ms` }}
+              />
             ))}
           </div>
 
-          <p className="mt-6 text-xs text-gray-muted">
-            තත්පර 10-30ක් ගතවිය හැකිය | May take 10-30 seconds
-          </p>
+          <Button variant="danger" size="lg" className="w-full" onClick={handleStop}>
+            නතර කරන්න | Stop &amp; Analyse
+          </Button>
         </div>
       )}
 
-      {phase === "result" && result && !followupState.active && !result.is_ood && (
-        <div className="mt-4">
-          <DiagnosisResult result={result} onRetry={handleRetry} />
-        </div>
+      {stage === 'analysing' && (
+        <Card>
+          <LoadingSpinner label="විශ්ලේෂණය කරමින්..." labelEn="Analysing your voice recording" />
+        </Card>
       )}
 
-      {phase === "result" && result && result.is_ood && (
-        <div className="mt-10">
-          <OODWarning
-            message={result.message}
-            reason={result.ood_reason}
-            onRetry={handleRetry}
-          />
-        </div>
-      )}
+      {stage === 'result' && result && <DiagnosisResult result={result} onNewDiagnosis={reset} />}
 
-      {phase === "result" && followupState.active && followupState.question && (
+      {stage === 'followup' && result && (
         <FollowUpDialog
-          question={followupState.question}
-          questionEn={followupState.questionEn}
-          questionNumber={followupState.questionNumber}
-          maxQuestions={followupState.maxQuestions}
-          confidence={result?.confidence ?? 0}
-          disease={result?.disease ?? ""}
-          isRecording={followupRecording}
-          onStartVoiceAnswer={startFollowupVoiceAnswer}
-          onStopVoiceAnswer={stopFollowupVoiceAnswer}
-          onAnswer={handleFollowupAnswer}
-          onSkip={handleFollowupSkip}
+          question={result.followup_question || ''}
+          questionEn={result.followup_question_en || ''}
+          questionNumber={result.question_number || 1}
+          maxQuestions={result.max_questions || 3}
+          confidence={result.confidence}
+          onAnswer={handleFollowUpAnswer}
+          onSkip={reset}
+          loading={followupLoading}
         />
       )}
-    </div>
-  );
-};
 
-export default VoiceDiagnosis;
+      {stage === 'ood' && result && (
+        <OODWarning reason={result.ood_reason} message={result.message} onRetry={reset} />
+      )}
+    </div>
+  )
+}

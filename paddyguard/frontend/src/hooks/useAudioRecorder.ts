@@ -1,92 +1,70 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react'
 
-const MIME_TYPES = [
-  "audio/webm;codecs=opus",
-  "audio/webm",
-  "audio/ogg",
-  "audio/wav",
-];
+interface UseAudioRecorderResult {
+  isRecording: boolean
+  seconds: number
+  error: string | null
+  start: () => Promise<void>
+  stop: () => Promise<{ blob: Blob; filename: string } | null>
+}
 
-const pickMimeType = (): string | undefined => {
-  if (typeof MediaRecorder === "undefined") return undefined;
-  return MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type));
-};
+export function useAudioRecorder(): UseAudioRecorderResult {
+  const [isRecording, setIsRecording] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
-export const useAudioRecorder = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [duration, setDuration] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const streamRef = useRef<MediaStream | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const chunks = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const clearTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+      streamRef.current?.getTracks().forEach((t) => t.stop())
     }
-  };
+  }, [])
 
-  const startRecording = useCallback(async () => {
-    setError(null);
-    setAudioBlob(null);
-    setDuration(0);
+  const start = useCallback(async () => {
+    setError(null)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      const mimeType = pickMimeType();
-      mediaRecorder.current = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-      chunks.current = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      chunksRef.current = []
 
-      mediaRecorder.current.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.current.push(e.data);
-      };
-      mediaRecorder.current.onstop = () => {
-        const type = mediaRecorder.current?.mimeType || "audio/webm";
-        setAudioBlob(new Blob(chunks.current, { type }));
-        stream.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      };
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
 
-      mediaRecorder.current.start();
-      setIsRecording(true);
-      intervalRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+      setSeconds(0)
+      timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000)
+      setIsRecording(true)
     } catch {
-      setError("mic_permission_denied");
+      setError('මයික්‍රෆෝන් අවසර ලබා දී නැත. | Microphone permission denied.')
     }
-  }, []);
+  }, [])
 
-  const stopRecording = useCallback(() => {
-    mediaRecorder.current?.stop();
-    setIsRecording(false);
-    clearTimer();
-  }, []);
+  const stop = useCallback((): Promise<{ blob: Blob; filename: string } | null> => {
+    return new Promise((resolve) => {
+      const recorder = mediaRecorderRef.current
+      if (!recorder) {
+        resolve(null)
+        return
+      }
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        streamRef.current?.getTracks().forEach((t) => t.stop())
+        if (timerRef.current) clearInterval(timerRef.current)
+        setIsRecording(false)
+        resolve({ blob, filename: `recording.${blob.type.includes('webm') ? 'webm' : 'ogg'}` })
+      }
+      recorder.stop()
+    })
+  }, [])
 
-  const clearRecording = useCallback(() => {
-    setAudioBlob(null);
-    setDuration(0);
-    setError(null);
-    setIsRecording(false);
-    chunks.current = [];
-    clearTimer();
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-  }, []);
-
-  useEffect(() => clearTimer, []);
-
-  return {
-    isRecording,
-    audioBlob,
-    duration,
-    error,
-    startRecording,
-    stopRecording,
-    clearRecording,
-  };
-};
+  return { isRecording, seconds, error, start, stop }
+}

@@ -1,31 +1,57 @@
-import { Droplets, Flame, CircleDot, CheckCircle2, type LucideIcon } from "lucide-react";
+export interface DiseaseInfo {
+  en: string
+  si: string
+  color: string
+}
 
-export const DISEASE_ICONS: Record<string, LucideIcon> = {
-  "Bacterial Blight": Droplets,
-  "Leaf Blast": Flame,
-  "Brown Spot": CircleDot,
-  Healthy: CheckCircle2,
-};
+const DISEASE_TABLE: Record<string, DiseaseInfo> = {
+  'bacterial blight': { en: 'Bacterial Blight', si: 'බැක්ටීරියා අංගමාරය', color: '#E74C3C' },
+  'leaf blast': { en: 'Leaf Blast', si: 'කොල පිලීර රෝගය', color: '#F4991A' },
+  'brown spot': { en: 'Brown Spot', si: 'දුඹුරු පුල්ලි රෝගය', color: '#8B4513' },
+  healthy: { en: 'Healthy', si: 'නීරෝගී', color: '#27AE60' },
+}
 
-export const getDiseaseIcon = (disease: string): LucideIcon =>
-  DISEASE_ICONS[disease] ?? CircleDot;
+/** Backend disease names arrive as either "Bacterial_Blight" or "Bacterial Blight" — normalize both. */
+function normalize(name: string): string {
+  return name.replace(/_/g, ' ').trim().toLowerCase()
+}
 
-export const DISEASE_COLORS: Record<string, string> = {
-  "Bacterial Blight": "#E74C3C",
-  "Leaf Blast": "#F4991A",
-  "Brown Spot": "#8B4513",
-  Healthy: "#27AE60",
-};
+export function getDiseaseInfo(name: string | null | undefined): DiseaseInfo {
+  if (!name) return { en: 'Unknown', si: 'නොදන්නා', color: '#64748B' }
+  const key = normalize(name)
+  return DISEASE_TABLE[key] || { en: name, si: name, color: '#64748B' }
+}
 
-export const DISEASE_COLORS_SI: Record<string, string> = {
-  "Bacterial Blight": "බැක්ටීරියා අංගමාරය",
-  "Leaf Blast": "කොළ පිලපත් රෝගය",
-  "Brown Spot": "දුඹුරු ලප රෝගය",
-  Healthy: "නීරෝගී",
-};
+export function diseaseColor(name: string | null | undefined): string {
+  return getDiseaseInfo(name).color
+}
 
-export const getDiseaseColor = (disease: string): string =>
-  DISEASE_COLORS[disease] ?? "#8A8A8A";
+export function diseaseSinhalaName(name: string | null | undefined): string {
+  return getDiseaseInfo(name).si
+}
 
-export const getDiseaseNameSi = (disease: string): string =>
-  DISEASE_COLORS_SI[disease] ?? disease;
+export function severityLabel(percentage: number | null | undefined): { label: string; color: string } {
+  if (percentage == null) return { label: 'N/A', color: '#64748B' }
+  if (percentage < 10) return { label: 'Low', color: '#27AE60' }
+  if (percentage < 30) return { label: 'Moderate', color: '#F4991A' }
+  return { label: 'Severe', color: '#E74C3C' }
+}
+
+export function formatConfidence(value: number): string {
+  return `${Math.round(value * 100)}%`
+}
+
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  try {
+    return new Date(iso).toLocaleString('en-LK', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  } catch {
+    return iso
+  }
+}

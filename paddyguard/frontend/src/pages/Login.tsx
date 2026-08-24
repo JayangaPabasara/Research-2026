@@ -1,117 +1,99 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Wheat, Eye, EyeOff } from "lucide-react";
-import toast from "react-hot-toast";
-import { login } from "../services/authService";
-import Button from "../components/ui/Button";
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Wheat } from 'lucide-react'
+import toast from 'react-hot-toast'
+import Input from '@/components/ui/Input'
+import Button from '@/components/ui/Button'
+import { login, getProfile } from '@/lib/authApi'
+import { ensureLeafSession } from '@/lib/leafApi'
+import { useAuthStore } from '@/store/authStore'
 
-const Login: React.FC = () => {
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+export default function Login() {
+  const navigate = useNavigate()
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (loading) return
+    setError('')
+    setLoading(true)
     try {
-      await login(email, password);
-      navigate("/", { replace: true });
-    } catch (err) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail || "විද්‍යුත් තැපෑල හෝ මුරපදය වැරදිය | Invalid email or password";
-      setError(detail);
-      toast.error(detail);
+      const tokens = await login(email, password)
+      setAuth({ id: '', email, full_name: null, role: 'FARMER' }, tokens.access_token, tokens.refresh_token)
+
+      const profile = await getProfile()
+      setAuth({ id: profile.id, email: profile.email, full_name: profile.full_name, role: 'FARMER' }, tokens.access_token, tokens.refresh_token)
+
+      ensureLeafSession(email, password, profile.full_name || undefined)
+      navigate('/')
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Login failed. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-cream">
-      <div className="mx-auto flex w-full max-w-[430px] flex-1 flex-col px-6 pt-16">
-        <div className="flex flex-col items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-forest">
-            <Wheat size={32} className="text-amber" />
-          </div>
-          <h1 className="mt-4 text-2xl font-bold text-forest">PaddyGuard AI</h1>
-          <p className="font-sinhala mt-1 text-sm text-forest-light">
-            ඔබේ ගිණුමට ඇතුළු වන්න
-          </p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4 py-10">
+      <div className="mb-6 flex flex-col items-center gap-3">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-forest">
+          <Wheat className="h-7 w-7 text-amber" />
         </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="mt-8 flex flex-col gap-4 rounded-[20px] bg-white p-6 shadow-card"
-        >
-          <div>
-            <input
-              type="email"
-              required
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="විද්‍යුත් තැපෑල"
-              className="font-sinhala h-12 w-full rounded-[10px] border border-transparent bg-beige px-4 text-sm text-forest transition-all duration-200 focus:border-forest focus:outline-none"
-            />
-          </div>
-
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="මුරපදය"
-              className="font-sinhala h-12 w-full rounded-[10px] border border-transparent bg-beige px-4 pr-11 text-sm text-forest transition-all duration-200 focus:border-forest focus:outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-muted"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-
-          {error && (
-            <div className="animate-slide-up rounded-full bg-red-soft/10 px-4 py-2 text-center text-xs font-medium text-red-soft">
-              {error}
-            </div>
-          )}
-
-          <Button type="submit" variant="primary" fullWidth loading={loading}>
-            <span className="font-sinhala">ඇතුළු වන්න | Login</span>
-          </Button>
-
-          <div className="my-1 flex items-center gap-3">
-            <div className="h-px flex-1 bg-beige" />
-            <span className="font-sinhala text-xs text-gray-muted">හෝ | or</span>
-            <div className="h-px flex-1 bg-beige" />
-          </div>
-
-          <Link
-            to="/register"
-            className="font-sinhala text-center text-sm font-medium text-forest underline"
-          >
-            ගිණුමක් නැද්ද? ලියාපදිංචි වන්න
-          </Link>
-        </form>
+        <h1 className="text-2xl font-bold text-forest">PaddyGuard AI</h1>
+        <p className="font-sinhala text-sm text-forest-muted">ගොවිජන රෝග නිර්ණය පද්ධතිය</p>
+        <p className="text-xs text-forest-muted">AI-Powered Rice Disease Diagnosis for Sri Lankan Farmers</p>
       </div>
 
-      <div
-        className="pointer-events-none h-[30vh] w-full"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(52,79,31,0) 0%, rgba(74,107,42,0.15) 60%, rgba(52,79,31,0.35) 100%)",
-        }}
-      />
-    </div>
-  );
-};
+      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <h2 className="mb-6 font-sinhala text-xl font-bold text-forest">ගිණුමට ඇතුළු වන්න</h2>
 
-export default Login;
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="විද්‍යුත් තැපෑල | Email"
+            sinhalaLabel
+            type="email"
+            placeholder="farmer@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Input
+            label="මුරපදය | Password"
+            sinhalaLabel
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          {error && <p className="rounded-xl bg-red-soft/10 px-4 py-2 text-sm text-red-soft">{error}</p>}
+
+          <Button type="submit" size="lg" className="w-full font-sinhala" loading={loading}>
+            ඇතුළු වන්න | Login
+          </Button>
+        </form>
+
+        <p className="mt-5 text-center font-sinhala text-sm text-forest">
+          ගිණුමක් නැද්ද?{' '}
+          <Link to="/register" className="font-semibold text-amber">
+            ලියාපදිංචි වන්න
+          </Link>
+        </p>
+
+        <div className="mt-6 border-t border-beige pt-4 text-center">
+          <Link to="/staff-login" className="text-xs text-forest-muted hover:text-forest">
+            Staff / Expert login →
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}

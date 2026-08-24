@@ -1,153 +1,125 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Bell, Wheat, Mic, Leaf, Bug, MessageCircle, ChevronRight } from "lucide-react";
-import { useAuthStore } from "../store/authStore";
-import { useDiagnosisStore } from "../store/diagnosisStore";
-import Card from "../components/ui/Card";
-import Button from "../components/ui/Button";
-import { getDiseaseColor, getDiseaseNameSi } from "../lib/disease";
+import { useNavigate } from 'react-router-dom'
+import { Mic, Leaf, Bug } from 'lucide-react'
+import Card from '@/components/ui/Card'
+import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
+import { useAuthStore } from '@/store/authStore'
+import { useDiagnosisStore } from '@/store/diagnosisStore'
+import { formatDate } from '@/lib/disease'
 
-const METHODS = [
+interface ModuleCard {
+  key: string
+  title: string
+  subtitle: string
+  description: string
+  tags: string[]
+  icon: typeof Mic
+  iconBg: string
+  to: string
+  featured?: boolean
+}
+
+const MODULES: ModuleCard[] = [
   {
-    key: "voice",
-    to: "/voice",
+    key: 'voice',
+    title: 'හඬ රෝග නිර්ණය',
+    subtitle: 'Voice-Based Disease Diagnosis',
+    description: 'සිංහලෙන් ලක්ෂණ විස්තර කර රෝගය හඳුනාගන්න',
+    tags: ['SVM 96.67% F1', 'Whisper ASR', 'OOD Detection'],
     icon: Mic,
-    iconBg: "bg-amber",
-    title: "හඬ රෝග නිර්ණය",
-    subtitle: "සිංහලෙන් ලක්ෂණ විස්තර කරන්න",
+    iconBg: 'bg-amber',
+    to: '/voice',
     featured: true,
   },
   {
-    key: "leaf",
-    to: "/leaf",
+    key: 'leaf',
+    title: 'කොළ රෝග හඳුනාගැනීම',
+    subtitle: 'Leaf Image Classification',
+    description: 'ගොයම් කොළ ඡායාරූපයෙන් රෝගය හඳුනාගන්න',
+    tags: ['CNN EfficientNet-B3', 'Grad-CAM', 'OOD Detection'],
     icon: Leaf,
-    iconBg: "bg-green-soft",
-    title: "කොළ රෝග හඳුනාගැනීම",
-    subtitle: "කොළ ඡායාරූපයක් ඇතුළු කරන්න",
+    iconBg: 'bg-green-soft',
+    to: '/leaf',
   },
   {
-    key: "pest",
-    to: "/pest",
+    key: 'pest',
+    title: 'කෘමි හඳුනාගැනීම',
+    subtitle: 'Pest Detection',
+    description: 'කෘමිය ඡායාරූපයෙන් හඳුනාගෙන ප්‍රතිකාර ලබාගන්න',
+    tags: ['DenseNet121', 'Few-Shot Learning', 'OOD Detection'],
     icon: Bug,
-    iconBg: "bg-amber-dark",
-    title: "කෘමි හඳුනාගැනීම",
-    subtitle: "කෘමිය ඡායාරූපයෙන් හඳුනාගන්න",
+    iconBg: 'bg-amber-dark',
+    to: '/pest',
   },
-  {
-    key: "chat",
-    to: "/treatment",
-    icon: MessageCircle,
-    iconBg: "bg-forest",
-    title: "ප්‍රතිකාර උපදෙස්",
-    subtitle: "AI රෝග විශේෂඥ විමසන්න",
-  },
-];
+]
 
-const Home: React.FC = () => {
-  const navigate = useNavigate();
-  const user = useAuthStore((s) => s.user);
-  const voiceResult = useDiagnosisStore((s) => s.voiceResult);
+export default function Home() {
+  const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
+  const { voiceHistory, pestHistory } = useDiagnosisStore()
+
+  const userHistory = user ? voiceHistory.filter((v) => v.userId === user.id).concat() : []
+  const totalDiagnoses = userHistory.length + pestHistory.filter((p) => p.userId === user?.id).length
+  const mostRecent = userHistory[0]
 
   return (
-    <div className="flex flex-col">
-      <div className="bg-forest px-4 pb-4 pt-[calc(env(safe-area-inset-top)+16px)]">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-sinhala text-lg font-bold text-white">
-              ආයුබෝවන්, {user?.full_name || "ගොවියා"}!
-            </h1>
-            <p className="font-sinhala mt-1 text-[13px] text-white/70">
-              ඔබේ ගොයමේ රෝග හඳුනා ගැනීමට අදාළ ක්‍රමය තෝරන්න
-            </p>
-          </div>
-          <button
-            type="button"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10"
-          >
-            <Bell size={18} className="text-white" />
-          </button>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <h2 className="font-sinhala text-2xl font-bold text-forest">
+          ආයුබෝවන්, {user?.full_name || 'ගොවියා'}!
+        </h2>
+        <p className="font-sinhala text-forest-muted">ඔබේ ගොයමේ රෝගය හඳුනාගැනීමට ක්‍රමයක් තෝරන්න</p>
       </div>
 
-      <div
-        className="card-hover mx-4 mt-4 flex items-center justify-between rounded-2xl p-5"
-        style={{
-          background: "linear-gradient(135deg, #F4991A 0%, #D4820E 100%)",
-        }}
-      >
-        <div>
-          <p className="text-xl font-bold text-white">PaddyGuard AI</p>
-          <p className="font-sinhala mt-1 text-[13px] text-white/90">
-            AI හඬ රෝග නිර්ණය
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {["Voice AI", "Image AI", "Chatbot"].map((label) => (
-              <span
-                key={label}
-                className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-medium text-white"
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        </div>
-        <Wheat size={48} className="shrink-0 text-white opacity-40" />
-      </div>
-
-      <p className="mx-4 mt-6 text-xs font-semibold uppercase tracking-wide text-forest">
-        ඔබේ ඉල්ලීම තෝරන්න
-      </p>
-
-      <div className="mx-4 mt-3 grid grid-cols-2 gap-3">
-        {METHODS.map(({ key, to, icon: Icon, iconBg, title, subtitle, featured }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => navigate(to)}
-            className={`card-hover flex flex-col items-start rounded-2xl bg-white p-4 text-left shadow-card transition-all duration-200 active:scale-[0.96] ${
-              featured ? "border-2 border-amber" : ""
-            }`}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {MODULES.map((mod) => (
+          <Card
+            key={mod.key}
+            hoverable
+            className={mod.featured ? 'border-2 border-amber' : ''}
           >
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-full ${iconBg}`}
-            >
-              <Icon size={22} className="text-white" />
+            <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full ${mod.iconBg}`}>
+              <mod.icon className="h-7 w-7 text-white" />
             </div>
-            <p className="font-sinhala mt-3 text-[15px] font-bold text-forest">
-              {title}
-            </p>
-            <p className="font-sinhala mt-1 text-xs text-gray-muted">{subtitle}</p>
-            <ChevronRight size={18} className="mt-2 text-amber" />
-          </button>
+            <h3 className="font-sinhala text-lg font-bold text-forest">{mod.title}</h3>
+            <p className="text-sm text-forest-muted">{mod.subtitle}</p>
+            <p className="font-sinhala mt-2 text-sm text-forest-light">{mod.description}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {mod.tags.map((tag) => (
+                <Badge key={tag} tone="amber">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+            <Button
+              variant={mod.featured ? 'primary' : 'outline'}
+              className="mt-5 w-full font-sinhala"
+              onClick={() => navigate(mod.to)}
+            >
+              ආරම්භ කරන්න | Start
+            </Button>
+          </Card>
         ))}
       </div>
 
-      {voiceResult && (
-        <>
-          <p className="mx-4 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-muted">
-            අවසාන රෝග නිර්ණය
-          </p>
-          <Card
-            className="mx-4 mt-3"
-            style={{ borderLeft: `4px solid ${getDiseaseColor(voiceResult.disease)}` }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-forest">{voiceResult.disease}</p>
-                <p className="font-sinhala text-xs text-gray-muted">
-                  {getDiseaseNameSi(voiceResult.disease)} ·{" "}
-                  {Math.round(voiceResult.confidence * 100)}%
-                </p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/voice")}>
-                <span className="font-sinhala">නැවත බලන්න</span>
-              </Button>
+      {totalDiagnoses > 0 && (
+        <Card>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-forest-muted">Total Diagnoses</p>
+              <p className="text-xl font-bold text-forest">{totalDiagnoses}</p>
             </div>
-          </Card>
-        </>
+            <div>
+              <p className="text-xs text-forest-muted">Most Recent Disease</p>
+              <p className="text-xl font-bold text-forest">{mostRecent?.disease || '-'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-forest-muted">Last Diagnosis</p>
+              <p className="text-xl font-bold text-forest">{mostRecent ? formatDate(mostRecent.timestamp) : '-'}</p>
+            </div>
+          </div>
+        </Card>
       )}
     </div>
-  );
-};
-
-export default Home;
+  )
+}

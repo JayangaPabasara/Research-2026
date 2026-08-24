@@ -1,18 +1,17 @@
-import React from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from 'lucide-react'
 
 interface LoadingSpinnerProps {
-  size?: number;
-  className?: string;
+  size?: number
+  label?: string
+  labelEn?: string
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-  size = 20,
-  className = "",
-}) => {
+export default function LoadingSpinner({ size = 40, label, labelEn }: LoadingSpinnerProps) {
   return (
-    <Loader2 size={size} className={`animate-spin ${className}`} strokeWidth={2.5} />
-  );
-};
-
-export default LoadingSpinner;
+    <div className="flex flex-col items-center justify-center gap-3 py-10 text-forest">
+      <Loader2 style={{ width: size, height: size }} className="animate-spin" />
+      {label && <p className="font-sinhala text-lg font-medium">{label}</p>}
+      {labelEn && <p className="text-sm text-forest-muted">{labelEn}</p>}
+    </div>
+  )
+}

@@ -1,106 +1,45 @@
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "react-hot-toast";
-import Home from "./pages/Home";
-import VoiceDiagnosis from "./pages/VoiceDiagnosis";
-import LeafDisease from "./pages/LeafDisease";
-import PestDetection from "./pages/PestDetection";
-import Treatment from "./pages/Treatment";
-import Report from "./pages/Report";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import ProtectedRoute from "./components/layout/ProtectedRoute";
-import { useAuthStore } from "./store/authStore";
+import { Routes, Route } from 'react-router-dom'
+import AppShell from '@/components/layout/AppShell'
+import ProtectedRoute from '@/components/layout/ProtectedRoute'
+import Login from '@/pages/Login'
+import Register from '@/pages/Register'
+import StaffLogin from '@/pages/StaffLogin'
+import Home from '@/pages/Home'
+import VoiceDiagnosis from '@/pages/VoiceDiagnosis'
+import LeafDisease from '@/pages/LeafDisease'
+import PestDetection from '@/pages/PestDetection'
+import History from '@/pages/History'
+import ExpertReview from '@/pages/ExpertReview'
+import AdminDashboard from '@/pages/AdminDashboard'
+import ExpertManagement from '@/pages/ExpertManagement'
+import AdminUsers from '@/pages/AdminUsers'
 
-const queryClient = new QueryClient();
+function Protected({ allow, children }: { allow: Array<'FARMER' | 'EXPERT' | 'SUPER_ADMIN'>; children: React.ReactNode }) {
+  return (
+    <ProtectedRoute allow={allow}>
+      <AppShell>{children}</AppShell>
+    </ProtectedRoute>
+  )
+}
 
-const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  if (isAuthenticated) return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/staff-login" element={<StaffLogin />} />
 
-const App: React.FC = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            <PublicOnlyRoute>
-              <Login />
-            </PublicOnlyRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicOnlyRoute>
-              <Register />
-            </PublicOnlyRoute>
-          }
-        />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/voice"
-          element={
-            <ProtectedRoute>
-              <VoiceDiagnosis />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leaf"
-          element={
-            <ProtectedRoute>
-              <LeafDisease />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/pest"
-          element={
-            <ProtectedRoute>
-              <PestDetection />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/treatment"
-          element={
-            <ProtectedRoute>
-              <Treatment />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/report"
-          element={
-            <ProtectedRoute>
-              <Report />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
-    <Toaster position="top-center" />
-  </QueryClientProvider>
-);
-export default App;
+      <Route path="/" element={<Protected allow={['FARMER']}><Home /></Protected>} />
+      <Route path="/voice" element={<Protected allow={['FARMER']}><VoiceDiagnosis /></Protected>} />
+      <Route path="/leaf" element={<Protected allow={['FARMER', 'EXPERT', 'SUPER_ADMIN']}><LeafDisease /></Protected>} />
+      <Route path="/pest" element={<Protected allow={['FARMER']}><PestDetection /></Protected>} />
+      <Route path="/history" element={<Protected allow={['FARMER', 'EXPERT', 'SUPER_ADMIN']}><History /></Protected>} />
+
+      <Route path="/expert-review" element={<Protected allow={['EXPERT', 'SUPER_ADMIN']}><ExpertReview /></Protected>} />
+
+      <Route path="/dashboard" element={<Protected allow={['SUPER_ADMIN']}><AdminDashboard /></Protected>} />
+      <Route path="/expert-management" element={<Protected allow={['SUPER_ADMIN']}><ExpertManagement /></Protected>} />
+      <Route path="/admin/users" element={<Protected allow={['SUPER_ADMIN']}><AdminUsers /></Protected>} />
+    </Routes>
+  )
+}
