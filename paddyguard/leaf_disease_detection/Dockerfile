@@ -1,8 +1,10 @@
 FROM python:3.11-slim
-RUN apt-get update && apt-get install -y libgl1-mesa-glx libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
-RUN pip install --no-cache-dir --default-timeout=180 --retries 10 -r requirements.txt
-COPY . .
-EXPOSE 8002
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app ./app
+COPY models ./models
+COPY data ./data
+EXPOSE 8000
+CMD ["sh", "-c", "gunicorn -w 1 -b 0.0.0.0:${PORT:-8000} app.main:app --timeout 300"]
