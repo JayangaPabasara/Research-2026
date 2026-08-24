@@ -18,7 +18,8 @@ export default {
         },
         "red-soft": "#E74C3C",
         "green-soft": "#27AE60",
-        "gray-muted": "#8A8A8A",
+        "blue-soft": "#2563EB",
+        "gray-muted": "#64748B",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],

@@ -1,64 +1,47 @@
-import React from "react";
-import LoadingSpinner from "./LoadingSpinner";
+import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { Loader2 } from 'lucide-react'
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
-type Size = "sm" | "md" | "lg";
+type Variant = 'primary' | 'outline' | 'ghost' | 'danger'
+type Size = 'sm' | 'md' | 'lg'
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  size?: Size;
-  loading?: boolean;
-  fullWidth?: boolean;
-  icon?: React.ComponentType<{ size?: number; className?: string }>;
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant
+  size?: Size
+  loading?: boolean
+  children: ReactNode
 }
 
-const variantClasses: Record<Variant, string> = {
-  primary: "bg-amber text-white hover:bg-amber-dark",
-  secondary: "bg-beige text-forest border border-forest/20 hover:bg-beige/70",
-  ghost: "bg-transparent text-forest hover:bg-beige",
-  danger: "bg-red-soft text-white hover:brightness-95",
-};
+const VARIANT_CLASSES: Record<Variant, string> = {
+  primary: 'bg-amber text-white hover:bg-amber-dark disabled:bg-amber/50',
+  outline: 'border-2 border-forest text-forest bg-transparent hover:bg-forest/5 disabled:opacity-50',
+  ghost: 'text-forest hover:bg-beige disabled:opacity-50',
+  danger: 'bg-red-soft text-white hover:bg-red-600 disabled:bg-red-soft/50',
+}
 
-const sizeClasses: Record<Size, string> = {
-  lg: "h-[52px] text-base px-6",
-  md: "h-[44px] text-sm px-5",
-  sm: "h-[36px] text-sm px-4",
-};
+const SIZE_CLASSES: Record<Size, string> = {
+  sm: 'h-9 px-3 text-sm',
+  md: 'h-12 px-5 text-base',
+  lg: 'h-[52px] px-6 text-base',
+}
 
-const iconSize: Record<Size, number> = { lg: 20, md: 18, sm: 16 };
-
-const Button: React.FC<ButtonProps> = ({
-  variant = "primary",
-  size = "lg",
+export default function Button({
+  variant = 'primary',
+  size = 'md',
   loading = false,
-  fullWidth = false,
-  icon: Icon,
   disabled,
-  className = "",
+  className = '',
   children,
   ...rest
-}) => {
+}: ButtonProps) {
   return (
     <button
       disabled={disabled || loading}
       className={`inline-flex items-center justify-center gap-2 rounded-xl font-semibold
-        transition-all duration-200 active:scale-[0.96]
-        disabled:cursor-not-allowed disabled:opacity-60
-        ${variantClasses[variant]} ${sizeClasses[size]} ${
-        fullWidth ? "w-full" : ""
-      } ${className}`}
+        active:scale-95 transition-all duration-200 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`}
       {...rest}
     >
-      {loading ? (
-        <LoadingSpinner size={iconSize[size]} />
-      ) : (
-        <>
-          {Icon && <Icon size={iconSize[size]} />}
-          {children}
-        </>
-      )}
+      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+      {children}
     </button>
-  );
-};
-
-export default Button;
+  )
+}

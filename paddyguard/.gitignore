@@ -41,6 +41,7 @@ yarn-error.log*
 *.swo
 .DS_Store
 Thumbs.db
+.claude/
 
 # Build output
 dist/

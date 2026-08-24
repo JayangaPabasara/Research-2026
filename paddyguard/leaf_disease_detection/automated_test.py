@@ -32,7 +32,7 @@ class TestPipeline(unittest.TestCase):
         body.extend(f"--{boundary}--\r\n".encode('utf-8'))
         return bytes(body), f'multipart/form-data; boundary={boundary}'
 
-    @patch('app.main.model_service.predict')
+    @patch('app.api.analyze.model_service.predict')
     def test_end_to_end_uncertain_flow(self, mock_predict):
         print("\n--- Testing Isolated UNCERTAIN (Low Confidence) Flow ---")
         

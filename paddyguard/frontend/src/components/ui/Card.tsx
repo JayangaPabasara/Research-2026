@@ -1,27 +1,17 @@
-import React from "react";
+import type { HTMLAttributes, ReactNode } from 'react'
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  hover?: boolean;
-  padding?: string;
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode
+  hoverable?: boolean
 }
 
-const Card: React.FC<CardProps> = ({
-  hover = false,
-  padding = "p-4",
-  className = "",
-  children,
-  ...rest
-}) => {
+export default function Card({ children, hoverable = false, className = '', ...rest }: CardProps) {
   return (
     <div
-      className={`rounded-2xl bg-white shadow-card ${padding} ${
-        hover ? "card-hover" : ""
-      } ${className}`}
+      className={`rounded-2xl bg-white p-5 shadow-sm transition-shadow ${hoverable ? 'hover:shadow-md' : ''} ${className}`}
       {...rest}
     >
       {children}
     </div>
-  );
-};
-
-export default Card;
+  )
+}

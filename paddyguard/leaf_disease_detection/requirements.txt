@@ -5,8 +5,8 @@ SQLAlchemy>=2.0.0
 requests>=2.31.0
 Pillow>=11.0.0
 numpy>=2.0.0
-torch
-torchvision
+# torch/torchvision are installed separately in the Dockerfile (CPU-only wheels)
 opencv-python-headless>=4.10.0
 pymongo>=4.6.0
-cloudinary>=1.36.0gunicorn>=21.2.0
+cloudinary>=1.36.0
+gunicorn>=21.2.0
