@@ -26,8 +26,6 @@ export interface PestDetectionResult {
 export async function detectPest(image: File): Promise<PestDetectionResult> {
   const form = new FormData()
   form.append('image', image)
-  const { data } = await api.post('/api/v1/pest/detect', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const { data } = await api.post('/api/v1/pest/detect', form)
   return data
 }

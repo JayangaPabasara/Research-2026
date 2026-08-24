@@ -127,9 +127,7 @@ export async function analyzeLeaf(params: AnalyzeParams): Promise<AnalyzeResult>
   form.append('growth_stage', params.growth_stage || 'Unknown')
   if (params.created_by) form.append('created_by', params.created_by)
 
-  const { data } = await leafApi.post('/api/v1/image/classify', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const { data } = await leafApi.post('/api/v1/image/classify', form)
   return data
 }
 

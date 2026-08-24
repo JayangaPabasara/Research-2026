@@ -23,9 +23,7 @@ export interface VoiceDiagnosisResult {
 export async function diagnoseVoice(audio: Blob, filename: string): Promise<VoiceDiagnosisResult> {
   const form = new FormData()
   form.append('audio', audio, filename)
-  const { data } = await api.post('/api/v1/voice/diagnose', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const { data } = await api.post('/api/v1/voice/diagnose', form)
   return data
 }
 
