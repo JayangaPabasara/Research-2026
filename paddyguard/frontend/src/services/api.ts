@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStore } from "../store/authStore";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
@@ -16,8 +17,14 @@ export interface DiagnosisResult {
   status: string;
   message: string | null;
   all_scores: Record<string, number>;
-  sinhala_transcript?: string;
-  english_translation?: string;
+  sinhala_transcript: string;
+  english_translation: string;
+  session_id: string | null;
+  followup_question: string | null;
+  followup_question_en: string | null;
+  question_number: number;
+  max_questions: number;
+  followup_complete?: boolean;
 }
 
 export interface LeafResult {
@@ -47,6 +54,87 @@ export interface OODResult {
   reason: string;
   message: string;
 }
+
+export interface AuthTokens {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+// --- Auth interceptor: attach JWT to every request ---
+api.interceptors.request.use((config) => {
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
+
+// --- 401 handling: refresh once then retry, otherwise log out ---
+let refreshPromise: Promise<string | null> | null = null;
+
+const performRefresh = async (): Promise<string | null> => {
+  const { refreshToken, setTokens } = useAuthStore.getState();
+  if (!refreshToken) return null;
+  try {
+    const { data } = await axios.post<AuthTokens>(
+      `${api.defaults.baseURL}/api/v1/auth/refresh`,
+      { refresh_token: refreshToken }
+    );
+    setTokens(data.access_token, data.refresh_token);
+    return data.access_token;
+  } catch {
+    return null;
+  }
+};
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      refreshPromise = refreshPromise ?? performRefresh();
+      const newToken = await refreshPromise;
+      refreshPromise = null;
+
+      if (newToken) {
+        originalRequest.headers = originalRequest.headers ?? {};
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      }
+
+      useAuthStore.getState().logout();
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth service
+export const authApi = {
+  register: async (
+    email: string,
+    password: string,
+    full_name: string
+  ): Promise<AuthTokens> => {
+    const { data } = await api.post("/api/v1/auth/register", {
+      email,
+      password,
+      full_name,
+    });
+    return data;
+  },
+  login: async (email: string, password: string): Promise<AuthTokens> => {
+    const { data } = await api.post("/api/v1/auth/login", { email, password });
+    return data;
+  },
+  refresh: async (refresh_token: string): Promise<AuthTokens> => {
+    const { data } = await api.post("/api/v1/auth/refresh", { refresh_token });
+    return data;
+  },
+};
 
 // Voice NLP service
 export const voiceService = {
