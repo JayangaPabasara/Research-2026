@@ -5,9 +5,16 @@ import EmptyState from '@/components/ui/EmptyState'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { useAuthStore } from '@/store/authStore'
 import { useDiagnosisStore } from '@/store/diagnosisStore'
-import { getUserHistory } from '@/lib/leafApi'
+import { getCases, getUserHistory, deleteCase, getLeafAuth } from '@/lib/leafApi'
 import type { CaseSummary } from '@/lib/leafApi'
 import { diseaseSinhalaName, formatConfidence, formatDate } from '@/lib/disease'
+import toast from 'react-hot-toast'
+
+// Scoped Leaf imports
+import UserAnalyticsOverview from '@/components/leaf/UserAnalyticsOverview'
+import HistoryTable from '@/components/leaf/HistoryTable'
+import ActivityModal from '@/components/leaf/ActivityModal'
+import '@/components/leaf/leafStyles.css'
 
 type Tab = 'voice' | 'leaf' | 'pest'
 
@@ -15,21 +22,43 @@ export default function History() {
   const [tab, setTab] = useState<Tab>('voice')
   const [leafCases, setLeafCases] = useState<CaseSummary[]>([])
   const [loadingLeaf, setLoadingLeaf] = useState(false)
+  const [selectedLeafCase, setSelectedLeafCase] = useState<CaseSummary | null>(null)
 
   const user = useAuthStore((s) => s.user)
+  const leafAuth = getLeafAuth()
+  const isStaff = leafAuth?.role === 'EXPERT' || leafAuth?.role === 'SUPER_ADMIN'
+  
   const { voiceHistory, pestHistory } = useDiagnosisStore()
   const myVoice = voiceHistory.filter((v) => v.userId === user?.id)
   const myPest = pestHistory.filter((p) => p.userId === user?.id)
 
   useEffect(() => {
-    if (tab === 'leaf' && leafCases.length === 0) {
-      setLoadingLeaf(true)
-      getUserHistory()
-        .then(setLeafCases)
-        .catch(() => setLeafCases([]))
-        .finally(() => setLoadingLeaf(false))
+    if (tab === 'leaf') {
+      loadLeafHistory()
     }
-  }, [tab, leafCases.length])
+  }, [tab])
+
+  async function loadLeafHistory() {
+    setLoadingLeaf(true)
+    try {
+      const data = isStaff ? await getCases(leafAuth?.username) : await getUserHistory()
+      setLeafCases(Array.isArray(data) ? data : [])
+    } catch {
+      toast.error('Failed to load leaf history')
+    } finally {
+      setLoadingLeaf(false)
+    }
+  }
+
+  async function handleDeleteLeaf(caseId: string) {
+    try {
+      await deleteCase(caseId)
+      setLeafCases((prev) => prev.filter((c) => c.case_id !== caseId))
+      toast.success('Case removed successfully')
+    } catch {
+      toast.error('Failed to delete case')
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -69,24 +98,29 @@ export default function History() {
           </div>
         ))}
 
-      {tab === 'leaf' &&
-        (loadingLeaf ? (
-          <LoadingSpinner labelEn="Loading leaf history..." />
-        ) : leafCases.length === 0 ? (
-          <EmptyState icon={Leaf} title="No leaf analyses yet" />
-        ) : (
-          <div className="space-y-3">
-            {leafCases.map((c) => (
-              <Card key={c.case_id} className="flex items-center justify-between">
-                <div>
-                  <p className="font-sinhala font-medium text-forest">{diseaseSinhalaName(c.predicted_disease)}</p>
-                  <p className="text-xs text-forest-muted">{formatDate(c.created_at)}</p>
-                </div>
-                <span className="text-sm font-semibold text-forest-muted">{formatConfidence(c.confidence)}</span>
-              </Card>
-            ))}
+      {tab === 'leaf' && (
+        <div className="leaf-module space-y-6">
+          <UserAnalyticsOverview />
+          
+          <div className="card">
+            <h2 className="text-lg font-bold text-forest mb-4" style={{ margin: '0 0 1rem 0' }}>Prediction History</h2>
+            {loadingLeaf ? (
+              <LoadingSpinner labelEn="Loading history..." />
+            ) : (
+              <HistoryTable 
+                cases={leafCases} 
+                onRowClick={setSelectedLeafCase} 
+                onDelete={handleDeleteLeaf} 
+              />
+            )}
           </div>
-        ))}
+
+          <ActivityModal 
+            caseData={selectedLeafCase} 
+            onClose={() => setSelectedLeafCase(null)} 
+          />
+        </div>
+      )}
 
       {tab === 'pest' &&
         (myPest.length === 0 ? (

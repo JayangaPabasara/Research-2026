@@ -6,12 +6,25 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.getenv(
-    "POSTGRES_URL",
-    "postgresql://paddyguard:paddyguard123@postgres:5432/paddyguard_db",
-)
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+def _resolve_database_url():
+    postgres_url = os.getenv("POSTGRES_URL")
+    if postgres_url:
+        return postgres_url
+
+    if os.getenv("USE_SQLITE", "true").lower() in {"1", "true", "yes", "on"}:
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "user_management.db"))
+        return f"sqlite:///{db_path}"
+
+    return "postgresql://paddyguard:paddyguard123@postgres:5432/paddyguard_db"
+
+
+DATABASE_URL = _resolve_database_url()
+engine_kwargs = {"pool_pre_ping": True}
+if DATABASE_URL.startswith("sqlite"):
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

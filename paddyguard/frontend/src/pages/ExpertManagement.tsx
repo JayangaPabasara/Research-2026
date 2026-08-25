@@ -74,9 +74,9 @@ export default function ExpertManagement() {
           <h3 className="font-semibold text-forest">Add Expert</h3>
         </div>
         <form onSubmit={handleCreate} className="space-y-3">
-          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Input label="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+          <Input label="Username" value={username} onChange={(e) => setUsername(e.target.value)} required autoComplete="username" />
+          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
           <Button type="submit" className="w-full" loading={creating}>
             Create Expert
           </Button>

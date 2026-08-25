@@ -23,7 +23,7 @@ export function clearLeafAuth() {
 }
 
 const leafApi = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '',
   timeout: 120000,
 })
 
@@ -43,6 +43,8 @@ leafApi.interceptors.response.use(
   }
 )
 
+const LEAF_API_BASE = '/api/v1/image'
+
 /**
  * The leaf disease service (C2) keeps its own farmer accounts, separate from
  * user_management. Farmers who sign in through the main Login/Register flow
@@ -52,19 +54,19 @@ leafApi.interceptors.response.use(
  */
 export async function ensureLeafSession(email: string, password: string, fullName?: string): Promise<void> {
   try {
-    const { data } = await leafApi.post('/api/v1/image/leaf-auth/login', { username: email, password })
+    const { data } = await leafApi.post(`${LEAF_API_BASE}/leaf-auth/login`, { username: email, password })
     setLeafAuth({ token: data.token, username: data.username, role: data.role, name: data.user?.name || data.username })
     return
   } catch {
     // Not yet registered on the leaf service — fall through to register+login.
   }
   try {
-    await leafApi.post('/api/v1/image/leaf-auth/register', {
+    await leafApi.post(`${LEAF_API_BASE}/leaf-auth/register`, {
       name: fullName || email.split('@')[0],
       email,
       password,
     })
-    const { data } = await leafApi.post('/api/v1/image/leaf-auth/login', { username: email, password })
+    const { data } = await leafApi.post(`${LEAF_API_BASE}/leaf-auth/login`, { username: email, password })
     setLeafAuth({ token: data.token, username: data.username, role: data.role, name: data.user?.name || data.username })
   } catch {
     // Leaf service unavailable — /leaf features will prompt re-auth later.
@@ -72,7 +74,7 @@ export async function ensureLeafSession(email: string, password: string, fullNam
 }
 
 export async function staffLogin(username: string, password: string): Promise<LeafAuth> {
-  const { data } = await leafApi.post('/api/v1/image/leaf-auth/login', { username, password })
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/leaf-auth/login`, { username, password })
   const auth: LeafAuth = { token: data.token, username: data.username, role: data.role, name: data.user?.name || data.username }
   setLeafAuth(auth)
   return auth
@@ -127,7 +129,7 @@ export async function analyzeLeaf(params: AnalyzeParams): Promise<AnalyzeResult>
   form.append('growth_stage', params.growth_stage || 'Unknown')
   if (params.created_by) form.append('created_by', params.created_by)
 
-  const { data } = await leafApi.post('/api/v1/image/classify', form)
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/classify`, form)
   return data
 }
 
@@ -146,21 +148,21 @@ export interface CaseSummary {
 }
 
 export async function getCases(username?: string): Promise<CaseSummary[]> {
-  const { data } = await leafApi.get('/api/v1/image/cases', { params: username ? { username } : {} })
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/cases`, { params: username ? { username } : {} })
   return data
 }
 
 export async function deleteCase(caseId: string): Promise<void> {
-  await leafApi.delete(`/api/v1/image/cases/${caseId}`)
+  await leafApi.delete(`${LEAF_API_BASE}/cases/${caseId}`)
 }
 
 export async function refreshWeather(caseId: string) {
-  const { data } = await leafApi.post(`/api/v1/image/cases/${caseId}/refresh-weather`)
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/cases/${caseId}/refresh-weather`)
   return data
 }
 
 export async function getUserHistory(): Promise<CaseSummary[]> {
-  const { data } = await leafApi.get('/api/v1/image/user/history')
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/user/history`)
   return data
 }
 
@@ -179,12 +181,12 @@ export interface ReviewQueueItem {
 }
 
 export async function getReviewQueue(): Promise<ReviewQueueItem[]> {
-  const { data } = await leafApi.get('/api/v1/image/expert/review-queue')
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/review-queue`)
   return data
 }
 
 export async function verifyCase(caseId: string, expertLabel: string) {
-  const { data } = await leafApi.post(`/api/v1/image/expert/review-queue/${caseId}/verify`, { expert_label: expertLabel })
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert/review-queue/${caseId}/verify`, { expert_label: expertLabel })
   return data
 }
 
@@ -205,7 +207,7 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const { data } = await leafApi.get('/api/v1/image/expert/dashboard-stats')
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/dashboard-stats`)
   return data
 }
 
@@ -219,17 +221,17 @@ export interface Batch {
 }
 
 export async function getBatches(): Promise<Batch[]> {
-  const { data } = await leafApi.get('/api/v1/image/expert/active-learning/batches')
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/active-learning/batches`)
   return data
 }
 
 export async function prepareBatch(): Promise<Batch> {
-  const { data } = await leafApi.post('/api/v1/image/expert/active-learning/prepare-batch')
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert/active-learning/prepare-batch`)
   return data
 }
 
 export async function startBatch(batchId: string) {
-  const { data } = await leafApi.post(`/api/v1/image/expert/active-learning/batches/${batchId}/start`)
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert/active-learning/batches/${batchId}/start`)
   return data
 }
 
@@ -244,17 +246,17 @@ export interface Expert {
 }
 
 export async function getExperts(): Promise<Expert[]> {
-  const { data } = await leafApi.get('/api/v1/image/expert-management')
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert-management`)
   return data
 }
 
 export async function createExpert(name: string, username: string, password: string) {
-  const { data } = await leafApi.post('/api/v1/image/expert-management', { name, username, password })
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert-management`, { name, username, password })
   return data
 }
 
 export async function toggleExpert(id: number) {
-  const { data } = await leafApi.post(`/api/v1/image/expert-management/${id}/toggle-status`)
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert-management/${id}/toggle-status`)
   return data
 }
 
@@ -269,7 +271,99 @@ export interface AdminUser {
 }
 
 export async function getAdminUsers(): Promise<AdminUser[]> {
-  const { data } = await leafApi.get('/api/v1/image/admin/users')
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/admin/users`)
+  return data
+}
+
+// Active Learning & Fine-Tuning Additions
+export interface CandidateModel {
+  candidate_id: string
+  filename: string
+  test_accuracy: number
+  macro_f1: number
+  uploaded_at: string
+  source_batch_id: string | null
+  notes: string | null
+  status: 'ELIGIBLE_FOR_REVIEW' | 'REJECTED'
+  checkpoint_pruned_at: string | null
+}
+
+export interface FineTuneReadiness {
+  can_train: boolean
+  eligible_new_samples: number
+  min_required: number
+  test_dataset_ready: boolean
+  blockers: string[]
+}
+
+export interface FineTuneJob {
+  job_id: string
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'PROMOTED'
+  created_at: string
+  source_sample_count: number
+  candidate_accuracy: number | null
+  candidate_macro_f1: number | null
+  accuracy_delta: number | null
+  decision: string | null
+}
+
+export interface FineTuneJobStatus extends FineTuneJob {
+  epochs_completed: number
+  total_epochs: number
+  log_tail: string | null
+}
+
+export async function getBatch(batchId: string) {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/active-learning/batches/${batchId}`)
+  return data
+}
+
+export async function exportBatch(batchId: string): Promise<Blob> {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/active-learning/batches/${batchId}/export`, {
+    responseType: 'blob',
+  })
+  return data
+}
+
+export async function uploadCandidateModel(formData: FormData) {
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert/model-candidates/upload`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+export async function getCandidateModels(): Promise<CandidateModel[]> {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/model-candidates`)
+  return data
+}
+
+export async function checkFineTuneReadiness(): Promise<FineTuneReadiness> {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/fine-tune/readiness`)
+  return data
+}
+
+export async function startFineTuning() {
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert/fine-tune/start`)
+  return data
+}
+
+export async function getFineTuneJobs(): Promise<FineTuneJob[]> {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/fine-tune/jobs`)
+  return data
+}
+
+export async function getFineTuneJobStatus(jobId: string): Promise<FineTuneJobStatus> {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/fine-tune/status/${jobId}`)
+  return data
+}
+
+export async function promoteCandidate(jobId: string) {
+  const { data } = await leafApi.post(`${LEAF_API_BASE}/expert/fine-tune/${jobId}/promote`)
+  return data
+}
+
+export async function getDeployedModel() {
+  const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/deployed-model`)
   return data
 }
 

@@ -1,10 +1,20 @@
 """Routes ALL leaf disease requests to C2 leaf_disease_detection Flask service."""
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
-from fastapi.responses import JSONResponse
-import httpx, os
+from fastapi.responses import JSONResponse, StreamingResponse
+import httpx, os, io
 
 router = APIRouter()
-LEAF_URL = os.getenv("LEAF_DISEASE_URL", "http://leaf_disease_detection:8002")
+
+def _default_service_url(container_url: str, local_url: str) -> str:
+    override = os.getenv("LEAF_DISEASE_URL")
+    if override:
+        return override
+    if os.path.exists("/.dockerenv"):
+        return container_url
+    return local_url
+
+
+LEAF_URL = _default_service_url("http://leaf_disease_detection:8002", "http://localhost:8002")
 TIMEOUT = httpx.Timeout(120.0)
 
 
@@ -192,3 +202,60 @@ async def leaf_login(request: Request):
 async def leaf_register(request: Request):
     body = await request.json()
     return await _forward(request, "POST", "/api/auth/register", json=body)
+
+
+# Active Learning & Model Candidates Gateway Additions
+@router.get("/expert/model-candidates")
+async def get_model_candidates(request: Request):
+    return await _forward(request, "GET", "/api/expert/model-candidates")
+
+
+@router.post("/expert/model-candidates/upload")
+async def upload_model_candidate_gateway(request: Request):
+    form = await request.form()
+    files = {}
+    file_item = form.get("file")
+    if file_item and hasattr(file_item, "filename"):
+        content = await file_item.read()
+        files["file"] = (file_item.filename, content, file_item.content_type)
+    
+    for k, v in form.items():
+        if k != "file":
+            files[k] = (None, str(v))
+            
+    return await _forward(request, "POST", "/api/expert/model-candidates/upload", files=files)
+
+
+@router.post("/expert/fine-tune/{job_id}/promote")
+async def promote_candidate_gateway(request: Request, job_id: str):
+    return await _forward(request, "POST", f"/api/expert/fine-tune/{job_id}/promote")
+
+
+@router.get("/expert/active-learning/batches/{batch_id}/export")
+async def export_batch_gateway(request: Request, batch_id: str):
+    headers = {}
+    auth = request.headers.get("Authorization")
+    if auth:
+        headers["Authorization"] = auth
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            async with client.stream("GET", f"{LEAF_URL}/api/expert/active-learning/batches/{batch_id}/export", headers=headers) as resp:
+                if resp.status_code != 200:
+                    try:
+                        content = await resp.aread()
+                        import json
+                        return JSONResponse(status_code=resp.status_code, content=json.loads(content))
+                    except:
+                        return JSONResponse(status_code=resp.status_code, content={"detail": "Export failed"})
+                
+                content = await resp.aread()
+                return StreamingResponse(
+                    io.BytesIO(content),
+                    media_type="application/zip",
+                    headers={
+                        "Content-Disposition": f"attachment; filename=PaddyGuard_AL_BATCH_{batch_id}.zip"
+                    }
+                )
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Leaf disease service unavailable")
+
