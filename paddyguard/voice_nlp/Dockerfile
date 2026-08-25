@@ -12,6 +12,9 @@ WORKDIR /app
 
 # Install Python dependencies first (Docker layer cache)
 COPY requirements.txt .
+RUN pip install --no-cache-dir \
+    torch==2.6.0+cpu torchaudio==2.6.0+cpu \
+    --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir --default-timeout=180 --retries 10 -r requirements.txt
 
 # Copy service code

@@ -692,7 +692,12 @@ export default function AdminDashboard() {
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 10 }} />
                       <YAxis domain={[90, 100]} allowDecimals={false} tick={{ fill: '#4a5568', fontSize: 10 }} />
-                      <Tooltip formatter={(value: number) => value.toFixed(2)} />
+                      <Tooltip
+                        formatter={(value) => {
+                          const numericValue = Array.isArray(value) ? Number(value[0]) : Number(value);
+                          return Number.isFinite(numericValue) ? numericValue.toFixed(2) : String(value ?? '');
+                        }}
+                      />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: '11px' }} />
                       <Bar dataKey="Current" fill="#a0aec0" barSize={25} />
                       <Bar
