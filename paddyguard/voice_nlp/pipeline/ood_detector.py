@@ -14,6 +14,14 @@ v4.1 changes:
 - ENTROPY_THRESHOLD raised 0.90 → 1.20 (short sentences naturally uncertain)
 - MARGIN_THRESHOLD lowered 0.20 → 0.10 (BS vs LB gap is real but narrow)
 - Added Brown Spot bigrams: "brown spots", "small spots", "many spots"
+
+v4.2 changes:
+- MIN_SYMPTOM_WORDS raised 1 → 2 (1 generic word was enough to skip OOD,
+  letting garbled/irrelevant translations reach the SVM with a confident
+  but wrong disease label)
+- Split generic descriptor words (colors, "turned", "big", "shape", etc.)
+  out of SYMPTOM_VOCABULARY into GENERIC_DESCRIPTORS — they no longer
+  count toward the vocabulary gate on their own, only via STRONG_BIGRAMS
 """
 import re
 
@@ -46,8 +54,25 @@ SYMPTOM_VOCABULARY = set([
     "unflooded","silicon","nitrogen","fertilizer","goyam","kola",
     "pithu","pala","kiribath",
     # Brown Spot descriptors farmers commonly use
-    "small","many","dot","dots","mark","marks","speck","specks",
-    "surface","patch","patches","numerous","covered","all","over",
+    "dot","dots","mark","marks","speck","specks","patch","patches",
+])
+
+# ── Generic descriptor words ────────────────────────────────────────
+# Ambiguous on their own (Google Translate produces these from all kinds
+# of unrelated farmer speech, not just symptom descriptions). They do NOT
+# count toward the vocabulary gate individually — only genuine disease
+# phrasing (STRONG_BIGRAMS) or a real core-vocabulary word above lets
+# text through. Kept as a set (not merged into SYMPTOM_VOCABULARY) so
+# they still combine with STRONG_BIGRAMS matches like "turning yellow".
+GENERIC_DESCRIPTORS = set([
+    "small","many","numerous","covered","all","over","surface",
+    "big","lots","lot",
+    "black","red","reddish",
+    "shaped","shape",
+    "corn","wheat","barley","crops","plants",
+    "spread","whole",
+    "turning","turned","color","colour",
+    "porridge",
 ])
 
 # ── Blocklist ─────────────────────────────────────────────────────────
@@ -77,6 +102,10 @@ STRONG_BIGRAMS = [
     "brown spots","small spots","small brown","many spots","dark spots",
     "round spots","circular spots","spots appearing","spots spreading",
     "numerous spots","scattered spots","oval spots","brown marks",
+    # Everyday phrasing additions
+    "yellow leaves","leaves yellow","yellow color","turning yellow",
+    "turned yellow","diamond-shaped","has dots","yellow porridge",
+    "is yellow","are yellow",
 ]
 
 

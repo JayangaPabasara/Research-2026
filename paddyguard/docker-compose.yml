@@ -28,6 +28,13 @@ services:
     env_file: ./voice_nlp/.env
     volumes:
       - ./voice_nlp/models:/app/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
   leaf_disease_detection:
     build: ./leaf_disease_detection
