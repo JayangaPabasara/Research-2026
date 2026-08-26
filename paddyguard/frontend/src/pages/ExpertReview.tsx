@@ -6,15 +6,29 @@ import { HelpCircle } from 'lucide-react'
 // UI Primitives
 import EmptyState from '@/components/ui/EmptyState'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 // Scoped Leaf APIs
-import { getReviewQueue, verifyCase } from '@/lib/leafApi'
+import { getReviewQueue, verifyCase, deleteCase } from '@/lib/leafApi'
 import type { ReviewQueueItem } from '@/lib/leafApi'
 import { formatDate } from '@/lib/disease'
 
 import '@/components/leaf/leafStyles.css'
 
-const CLASSES = ['Bacterial_Blight', 'Brown_Spot', 'Healthy', 'Leaf_Blast']
+const CLASSES = [
+  'Bacterial_Blight',
+  'Brown_Spot',
+  'Healthy',
+  'Leaf_Blast',
+  'OOD',
+]
+const EXTERNAL_LABELS = [
+  { value: 'Bacterial_Blight', label: 'Bacterial Blight' },
+  { value: 'Brown_Spot', label: 'Brown Spot' },
+  { value: 'Healthy', label: 'Healthy' },
+  { value: 'Leaf_Blast', label: 'Leaf Blast' },
+  { value: 'OOD', label: 'OOD / Unknown' },
+]
 const PIE_COLORS = ['#2c7a7b', '#dd6b20', '#38a169', '#3182ce', '#805ad5', '#e53e3e']
 
 const CustomTooltipPie = ({ active, payload }: any) => {
@@ -35,6 +49,8 @@ export default function ExpertReview() {
   const [selectedCase, setSelectedCase] = useState<ReviewQueueItem | null>(null)
   const [expertLabel, setExpertLabel] = useState(CLASSES[0])
   const [verifying, setVerifying] = useState(false)
+  const [deletingCase, setDeletingCase] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   
   // Search Filters
   const [searchDisease, setSearchDisease] = useState('')
@@ -61,13 +77,31 @@ export default function ExpertReview() {
     setVerifying(true)
     try {
       await verifyCase(selectedCase.case_id, expertLabel)
-      toast.success('Case verified successfully')
+      toast.success(expertLabel === 'OOD' ? 'Case marked as OOD / Unknown' : 'Case verified successfully')
       setSelectedCase(null)
-      loadQueue()
-    } catch {
-      toast.error('Failed to verify case')
+      await loadQueue()
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || 'Failed to verify case'
+      toast.error(detail)
     } finally {
       setVerifying(false)
+    }
+  }
+
+  const handleDeleteCurrentCase = async () => {
+    if (!selectedCase) return
+    setDeletingCase(true)
+    try {
+      await deleteCase(selectedCase.case_id)
+      toast.success('Review case deleted successfully')
+      setDeleteConfirmOpen(false)
+      setSelectedCase(null)
+      await loadQueue()
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || 'Failed to delete case'
+      toast.error(detail)
+    } finally {
+      setDeletingCase(false)
     }
   }
 
@@ -408,9 +442,9 @@ export default function ExpertReview() {
                     onChange={(e) => setExpertLabel(e.target.value)}
                     className="w-full rounded-xl border border-beige bg-white p-3 font-medium text-forest outline-none focus:border-forest"
                   >
-                    {CLASSES.map((c) => (
-                      <option key={c} value={c}>
-                        {c.replace(/_/g, ' ')}
+                    {EXTERNAL_LABELS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
@@ -423,6 +457,13 @@ export default function ExpertReview() {
                       style={{ background: '#38a169', color: 'white' }}
                     >
                       {verifying ? 'Submitting...' : 'Submit Verification'}
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmOpen(true)}
+                      className="btn-secondary"
+                      style={{ background: '#fff5f5', color: '#c53030', borderColor: '#feb2b2', width: 'auto' }}
+                    >
+                      Delete Case
                     </button>
                     <button
                       onClick={() => setSelectedCase(null)}
@@ -438,6 +479,17 @@ export default function ExpertReview() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete review case"
+        message={`Delete this review case ${selectedCase?.case_id ?? 'Unknown'}? This permanently removes the case record and its uploaded image references from the leaf review workflow.`}
+        confirmLabel="Delete Case"
+        danger
+        loading={deletingCase}
+        onConfirm={handleDeleteCurrentCase}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </div>
   )
 }

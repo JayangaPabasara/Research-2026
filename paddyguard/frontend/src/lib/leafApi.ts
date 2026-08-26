@@ -337,6 +337,16 @@ export async function getCandidateModels(): Promise<CandidateModel[]> {
   return data
 }
 
+export async function deleteCandidateModel(candidateId: string) {
+  const { data } = await leafApi.delete(`${LEAF_API_BASE}/expert/model-candidates/${candidateId}`)
+  return data
+}
+
+export async function deleteActiveLearningBatch(batchId: string) {
+  const { data } = await leafApi.delete(`${LEAF_API_BASE}/expert/active-learning/batches/${batchId}`)
+  return data
+}
+
 export async function checkFineTuneReadiness(): Promise<FineTuneReadiness> {
   const { data } = await leafApi.get(`${LEAF_API_BASE}/expert/fine-tune/readiness`)
   return data

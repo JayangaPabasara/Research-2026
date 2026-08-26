@@ -133,7 +133,14 @@ async def finetune_readiness(request: Request):
 
 @router.post("/expert/fine-tune/start")
 async def finetune_start(request: Request):
-    body = await request.json()
+    if not await request.body():
+        return await _forward(request, "POST", "/api/expert/fine-tune/start")
+
+    try:
+        body = await request.json()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Request body must be valid JSON")
+
     return await _forward(request, "POST", "/api/expert/fine-tune/start", json=body)
 
 
@@ -224,6 +231,16 @@ async def upload_model_candidate_gateway(request: Request):
             files[k] = (None, str(v))
             
     return await _forward(request, "POST", "/api/expert/model-candidates/upload", files=files)
+
+
+@router.delete("/expert/model-candidates/{candidate_id}")
+async def delete_model_candidate_gateway(request: Request, candidate_id: str):
+    return await _forward(request, "DELETE", f"/api/expert/model-candidates/{candidate_id}")
+
+
+@router.delete("/expert/active-learning/batches/{batch_id}")
+async def delete_batch_gateway(request: Request, batch_id: str):
+    return await _forward(request, "DELETE", f"/api/expert/active-learning/batches/{batch_id}")
 
 
 @router.post("/expert/fine-tune/{job_id}/promote")

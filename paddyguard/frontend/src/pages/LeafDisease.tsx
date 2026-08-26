@@ -26,6 +26,25 @@ import '@/components/leaf/leafStyles.css'
 
 type Tab = 'analyze' | 'history'
 
+const LEAF_ANALYSIS_STORAGE_KEY = 'paddyguard_leaf_analysis_state'
+
+type PersistedLeafAnalysisState = {
+  tab: Tab
+  lang: 'en' | 'si'
+  showLocation: boolean
+  city: string
+  latitude: string
+  longitude: string
+  fieldArea: string
+  affectedField: string
+  expectedYield: string
+  treatmentApplied: boolean
+  preview: string | null
+  result: AnalyzeResult | null
+  error: string
+  duplicateError: any
+}
+
 export default function LeafDisease() {
   const [tab, setTab] = useState<Tab>('analyze')
   const [lang, setLang] = useState<'en' | 'si'>('en')
@@ -57,6 +76,88 @@ export default function LeafDisease() {
   const user = useAuthStore((s) => s.user)
   const leafAuth = getLeafAuth()
   const isStaff = leafAuth?.role === 'EXPERT' || leafAuth?.role === 'SUPER_ADMIN'
+
+  const clearLeafAnalysisState = () => {
+    if (preview?.startsWith('blob:')) {
+      URL.revokeObjectURL(preview)
+    }
+
+    sessionStorage.removeItem(LEAF_ANALYSIS_STORAGE_KEY)
+    setResult(null)
+    setError('')
+    setDuplicateError(null)
+    setPreview(null)
+    setFile(null)
+  }
+
+  useEffect(() => {
+    try {
+      const rawState = sessionStorage.getItem(LEAF_ANALYSIS_STORAGE_KEY)
+      if (!rawState) return
+
+      const savedState = JSON.parse(rawState) as Partial<PersistedLeafAnalysisState>
+
+      if (savedState.lang === 'si' || savedState.lang === 'en') {
+        setLang(savedState.lang)
+      }
+
+      setTab(savedState.tab === 'history' ? 'history' : 'analyze')
+      setShowLocation(Boolean(savedState.showLocation))
+      setCity(savedState.city || 'Gampaha')
+      setLatitude(savedState.latitude || '')
+      setLongitude(savedState.longitude || '')
+      setFieldArea(savedState.fieldArea || '1')
+      setAffectedField(savedState.affectedField || '10')
+      setExpectedYield(savedState.expectedYield || '1800')
+      setTreatmentApplied(Boolean(savedState.treatmentApplied))
+
+      if (savedState.preview) {
+        setPreview(savedState.preview)
+      }
+
+      if (savedState.result) {
+        setResult(savedState.result)
+      }
+
+      if (savedState.error) {
+        setError(savedState.error)
+      }
+
+      if (savedState.duplicateError) {
+        setDuplicateError(savedState.duplicateError)
+      }
+    } catch {
+      sessionStorage.removeItem(LEAF_ANALYSIS_STORAGE_KEY)
+    }
+  }, [])
+
+  useEffect(() => {
+    const persistedState: PersistedLeafAnalysisState = {
+      tab,
+      lang,
+      showLocation,
+      city,
+      latitude,
+      longitude,
+      fieldArea,
+      affectedField,
+      expectedYield,
+      treatmentApplied,
+      preview,
+      result,
+      error,
+      duplicateError,
+    }
+
+    if ((result || error || duplicateError || preview) && !(file && !preview)) {
+      sessionStorage.setItem(LEAF_ANALYSIS_STORAGE_KEY, JSON.stringify(persistedState))
+      return
+    }
+
+    if (!file && !preview && !result && !error && !duplicateError) {
+      sessionStorage.removeItem(LEAF_ANALYSIS_STORAGE_KEY)
+    }
+  }, [tab, lang, showLocation, city, latitude, longitude, fieldArea, affectedField, expectedYield, treatmentApplied, preview, result, error, duplicateError, file])
 
   // Initialize language selection
   useEffect(() => {
@@ -95,16 +196,27 @@ export default function LeafDisease() {
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const selected = e.target.files?.[0]
     if (!selected) return
+
+    if (preview?.startsWith('blob:')) {
+      URL.revokeObjectURL(preview)
+    }
+
     setFile(selected)
-    setPreview(URL.createObjectURL(selected))
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const nextPreview = typeof reader.result === 'string' ? reader.result : URL.createObjectURL(selected)
+      setPreview(nextPreview)
+    }
+    reader.readAsDataURL(selected)
+
     setDuplicateError(null)
     setError('')
     e.target.value = ''
   }
 
   function clearFile() {
-    setFile(null)
-    setPreview(null)
+    clearLeafAnalysisState()
   }
 
   function useMyLocation() {
@@ -301,10 +413,7 @@ export default function LeafDisease() {
   const openCalculationGuide = () => {
     if (typeof window === 'undefined') return
     const pdfUrl = new URL('/docs/PaddyGuard_AI_Prediction_Metrics_Explanation_Guide.pdf', window.location.origin).toString()
-    const popup = window.open(pdfUrl, '_blank', 'noopener,noreferrer')
-    if (!popup) {
-      window.location.href = pdfUrl
-    }
+    window.open(pdfUrl, '_blank', 'noopener,noreferrer')
   }
 
   return (

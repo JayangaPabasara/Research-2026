@@ -5,6 +5,8 @@ import { UploadCloud } from 'lucide-react'
 
 // UI Primitives
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import Modal from '@/components/ui/Modal'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 // Scoped Leaf components
 import FineTuningPanel from '@/components/leaf/FineTuningPanel'
@@ -19,6 +21,9 @@ import {
   uploadCandidateModel,
   getCandidateModels,
   getDeployedModel,
+  deleteCandidateModel,
+  deleteActiveLearningBatch,
+  getLeafAuth,
 } from '@/lib/leafApi'
 import type { DashboardStats, Batch, CandidateModel } from '@/lib/leafApi'
 
@@ -34,6 +39,11 @@ export default function AdminDashboard() {
   const [isPreparingBatch, setIsPreparingBatch] = useState(false)
   const [isExportingBatch, setIsExportingBatch] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [compareCandidate, setCompareCandidate] = useState<CandidateModel | null>(null)
+  const [candidateToDelete, setCandidateToDelete] = useState<CandidateModel | null>(null)
+  const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null)
+  const [candidateDeleteLoading, setCandidateDeleteLoading] = useState(false)
+  const [batchDeleteLoading, setBatchDeleteLoading] = useState(false)
 
   // Candidate evaluation states
   const [candidates, setCandidates] = useState<CandidateModel[]>([])
@@ -144,6 +154,65 @@ export default function AdminDashboard() {
       }
     } finally {
       setIsExportingBatch(false)
+    }
+  }
+
+  const canDeleteLeafRecords = getLeafAuth()?.role === 'SUPER_ADMIN'
+
+  const openCandidateComparison = (candidate: CandidateModel) => {
+    setCompareCandidate(candidate)
+    setSelectedCandidate(candidate)
+  }
+
+  async function confirmCandidateDelete() {
+    if (!candidateToDelete) return
+    setCandidateDeleteLoading(true)
+    try {
+      await deleteCandidateModel(candidateToDelete.candidate_id)
+      toast.success('Candidate deleted successfully.')
+      setCandidateToDelete(null)
+      const refreshed = await getCandidateModels()
+      setCandidates(refreshed)
+      if (selectedCandidate?.candidate_id === candidateToDelete.candidate_id) {
+        setSelectedCandidate(refreshed[0] ?? null)
+      }
+      if (compareCandidate?.candidate_id === candidateToDelete.candidate_id) {
+        setCompareCandidate(null)
+      }
+    } catch (err: any) {
+      const message = err.response?.data?.detail || 'Failed to delete candidate model.'
+      toast.error(message)
+    } finally {
+      setCandidateDeleteLoading(false)
+    }
+  }
+
+  async function confirmBatchDelete() {
+    if (!batchToDelete) return
+    setBatchDeleteLoading(true)
+    try {
+      await deleteActiveLearningBatch(batchToDelete.batch_id)
+      toast.success('Batch deleted successfully.')
+      setBatchToDelete(null)
+      const refreshed = await getBatches()
+      setBatches(refreshed)
+      if (selectedBatch?.batch?.batch_id === batchToDelete.batch_id) {
+        setSelectedBatch(null)
+      }
+    } catch (err: any) {
+      const status = err.response?.status
+      const backendMessage = err.response?.data?.detail || err.response?.data?.message
+      const warningMessage =
+        status === 409
+          ? (backendMessage || 'Cannot delete this batch because it is currently linked to training or model records.')
+          : (backendMessage || 'Failed to delete batch.')
+
+      toast.error(warningMessage)
+      if (status !== 409) {
+        console.error('Batch delete failed:', err)
+      }
+    } finally {
+      setBatchDeleteLoading(false)
     }
   }
 
@@ -417,13 +486,34 @@ export default function AdminDashboard() {
                             {b.is_demo_mode ? <span className="text-amber">DEMO</span> : <span className="text-forest">RESEARCH</span>}
                           </td>
                           <td className="text-right">
-                            <button
-                              onClick={() => viewBatch(b.batch_id)}
-                              className="primary-btn text-xs py-1 px-2.5 rounded-lg"
-                              style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
-                            >
-                              View
-                            </button>
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => viewBatch(b.batch_id)}
+                                className="primary-btn text-xs py-1 px-2.5 rounded-lg"
+                                style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
+                              >
+                                View
+                              </button>
+                              {canDeleteLeafRecords && (
+                                <button
+                                  onClick={() => setBatchToDelete(b)}
+                                  disabled={b.status === 'TRAINING' || b.status === 'TRAINING_SIMULATION'}
+                                  title={
+                                    b.status === 'TRAINING' || b.status === 'TRAINING_SIMULATION'
+                                      ? 'Cannot delete: this batch is used by a training job.'
+                                      : undefined
+                                  }
+                                  className={`text-xs py-1 px-2.5 rounded-lg ${
+                                    b.status === 'TRAINING' || b.status === 'TRAINING_SIMULATION'
+                                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                                      : 'bg-red-500 hover:bg-red-600 text-white'
+                                  }`}
+                                  style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -822,13 +912,24 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="text-right">
-                          <button
-                            onClick={() => setSelectedCandidate(c)}
-                            className="primary-btn text-xs py-1 px-2.5 rounded-lg"
-                            style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
-                          >
-                            Compare
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => openCandidateComparison(c)}
+                              className="primary-btn text-xs py-1 px-2.5 rounded-lg"
+                              style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
+                            >
+                              Compare
+                            </button>
+                            {canDeleteLeafRecords && (
+                              <button
+                                onClick={() => setCandidateToDelete(c)}
+                                className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2.5 rounded-lg"
+                                style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -844,6 +945,102 @@ export default function AdminDashboard() {
       <FineTuningPanel />
 
       {/* Demo batch Warning Modal */}
+      {compareCandidate && (
+        <Modal isOpen={Boolean(compareCandidate)} onClose={() => setCompareCandidate(null)} title="Candidate Comparison" size="lg">
+          <div className="space-y-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-beige bg-beige/10 p-4">
+                <h4 className="font-bold text-forest text-sm mb-2">Current Model</h4>
+                <p className="text-xs text-forest-muted"><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
+                <p className="text-xs text-forest-muted"><strong>Accuracy:</strong> {((deployedModel?.test_accuracy || 0.9714) * 100).toFixed(2)}%</p>
+                <p className="text-xs text-forest-muted"><strong>Macro F1:</strong> {(deployedModel?.macro_f1 || 0.9714).toFixed(4)}</p>
+              </div>
+              <div className="rounded-xl border border-beige bg-beige/10 p-4">
+                <h4 className="font-bold text-forest text-sm mb-2">Candidate Model</h4>
+                <p className="text-xs text-forest-muted"><strong>Filename:</strong> {compareCandidate.filename}</p>
+                <p className="text-xs text-forest-muted"><strong>Accuracy:</strong> {(compareCandidate.test_accuracy * 100).toFixed(2)}%</p>
+                <p className="text-xs text-forest-muted"><strong>Macro F1:</strong> {compareCandidate.macro_f1.toFixed(4)}</p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-beige">
+              <table className="w-full text-left">
+                <thead className="bg-beige/40">
+                  <tr>
+                    <th className="p-3 text-xs uppercase text-forest-muted">Metric</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">Current Model</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">Candidate</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">Delta</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      label: 'Accuracy',
+                      current: (deployedModel?.test_accuracy || 0.9714) * 100,
+                      candidate: compareCandidate.test_accuracy * 100,
+                      delta: (compareCandidate.test_accuracy - (deployedModel?.test_accuracy || 0.9714)) * 100,
+                      suffix: '%',
+                    },
+                    {
+                      label: 'Macro F1',
+                      current: (deployedModel?.macro_f1 || 0.9714) * 100,
+                      candidate: compareCandidate.macro_f1 * 100,
+                      delta: (compareCandidate.macro_f1 - (deployedModel?.macro_f1 || 0.9714)) * 100,
+                      suffix: '%',
+                    },
+                  ].map((row) => (
+                    <tr key={row.label} className="border-t border-beige">
+                      <td className="p-3 text-sm font-semibold text-forest">{row.label}</td>
+                      <td className="p-3 text-sm text-forest-muted">{row.current.toFixed(2)}{row.suffix}</td>
+                      <td className="p-3 text-sm text-forest-muted">{row.candidate.toFixed(2)}{row.suffix}</td>
+                      <td className={`p-3 text-sm font-bold ${row.delta >= 0 ? 'text-forest' : 'text-red-600'}`}>
+                        {row.delta >= 0 ? '+' : ''}{row.delta.toFixed(2)} pp
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 text-xs text-forest-muted">
+              <div><strong>Source Batch:</strong> {compareCandidate.source_batch_id || 'N/A'}</div>
+              <div><strong>Upload Date:</strong> {new Date(compareCandidate.uploaded_at).toLocaleString()}</div>
+              <div><strong>Decision:</strong> {compareCandidate.status === 'ELIGIBLE_FOR_REVIEW' ? 'Review Eligible' : 'Rejected'}</div>
+              <div><strong>Status:</strong> {compareCandidate.status}</div>
+            </div>
+
+            <div className="flex justify-end">
+              <button onClick={() => setCompareCandidate(null)} className="primary-btn text-sm py-2 px-4 rounded-lg">
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      <ConfirmDialog
+        isOpen={Boolean(candidateToDelete)}
+        title="Delete candidate model"
+        message={`Are you sure you want to delete this candidate model?\n\nFilename: ${candidateToDelete?.filename ?? 'Unknown'}\nUpload date: ${candidateToDelete?.uploaded_at ? new Date(candidateToDelete.uploaded_at).toLocaleString() : 'N/A'}\nDecision: ${candidateToDelete?.status === 'ELIGIBLE_FOR_REVIEW' ? 'Review Eligible' : 'Rejected'}\nSource batch: ${candidateToDelete?.source_batch_id || 'N/A'}`}
+        confirmLabel="Delete Candidate"
+        danger
+        loading={candidateDeleteLoading}
+        onConfirm={confirmCandidateDelete}
+        onCancel={() => setCandidateToDelete(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(batchToDelete)}
+        title="Delete Active Learning batch"
+        message={`Delete Active Learning batch ${batchToDelete?.batch_id ?? 'Unknown'}?\n\nCreated: ${batchToDelete?.created_at ? new Date(batchToDelete.created_at).toLocaleString() : 'N/A'}\nSamples: ${batchToDelete?.sample_count ?? 0}\nStatus: ${batchToDelete?.status ?? 'UNKNOWN'}\nMode: ${batchToDelete?.is_demo_mode ? 'DEMO' : 'RESEARCH'}`}
+        confirmLabel="Delete Batch"
+        danger
+        loading={batchDeleteLoading}
+        onConfirm={confirmBatchDelete}
+        onCancel={() => setBatchToDelete(null)}
+      />
+
       {warningModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '500px' }}>
