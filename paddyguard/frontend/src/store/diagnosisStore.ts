@@ -51,6 +51,10 @@ interface DiagnosisState {
   leafResult: AnalyzeResult | null
   addVoiceEntry: (entry: Omit<VoiceHistoryEntry, 'id' | 'timestamp'>) => void
   addPestEntry: (entry: Omit<PestHistoryEntry, 'id' | 'timestamp'>) => void
+  deleteVoiceEntry: (id: string) => void
+  deletePestEntry: (id: string) => void
+  clearVoiceHistory: (userId: string) => void
+  clearPestHistory: (userId: string) => void
   setLeafResult: (result: AnalyzeResult | null) => void
   historyForUser: (userId: string) => { voice: VoiceHistoryEntry[]; pest: PestHistoryEntry[] }
 }
@@ -67,6 +71,26 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
   addPestEntry: (entry) => {
     const full: PestHistoryEntry = { ...entry, id: crypto.randomUUID(), timestamp: new Date().toISOString() }
     const pestHistory = [full, ...get().pestHistory].slice(0, MAX_ENTRIES)
+    persist(get().voiceHistory, pestHistory)
+    set({ pestHistory })
+  },
+  deleteVoiceEntry: (id) => {
+    const voiceHistory = get().voiceHistory.filter((e) => e.id !== id)
+    persist(voiceHistory, get().pestHistory)
+    set({ voiceHistory })
+  },
+  deletePestEntry: (id) => {
+    const pestHistory = get().pestHistory.filter((e) => e.id !== id)
+    persist(get().voiceHistory, pestHistory)
+    set({ pestHistory })
+  },
+  clearVoiceHistory: (userId) => {
+    const voiceHistory = get().voiceHistory.filter((e) => e.userId !== userId)
+    persist(voiceHistory, get().pestHistory)
+    set({ voiceHistory })
+  },
+  clearPestHistory: (userId) => {
+    const pestHistory = get().pestHistory.filter((e) => e.userId !== userId)
     persist(get().voiceHistory, pestHistory)
     set({ pestHistory })
   },

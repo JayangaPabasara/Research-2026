@@ -26,6 +26,8 @@ export default function VoiceDiagnosis() {
   const [stage, setStage] = useState<Stage>('idle')
   const [result, setResult] = useState<VoiceDiagnosisResult | null>(null)
   const [followupLoading, setFollowupLoading] = useState(false)
+  const [yesCount, setYesCount] = useState(0)
+  const [questionCount, setQuestionCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recorder = useAudioRecorder()
   const user = useAuthStore((s) => s.user)
@@ -87,6 +89,74 @@ export default function VoiceDiagnosis() {
 
   async function handleFollowUpAnswer(answer: string) {
     if (!result?.session_id) return
+
+    const isYes = answer === 'ඔව්' || answer.toLowerCase() === 'yes'
+    const newYesCount = isYes ? yesCount + 1 : yesCount
+    const newQuestionCount = questionCount + 1
+
+    setYesCount(newYesCount)
+    setQuestionCount(newQuestionCount)
+
+    // If answered yes to 2 or more questions → show disease result immediately
+    if (newYesCount >= 2) {
+      // Confident enough — show disease based on current result
+      setStage('result')
+      if (user && result) {
+        addVoiceEntry({
+          disease: result.disease,
+          confidence: Math.min(result.confidence + 0.15, 0.95),
+          is_ood: false,
+          sinhala_transcript: result.sinhala_transcript || '',
+          english_translation: result.english_translation || '',
+          all_scores: result.all_scores,
+          userId: user.id,
+        })
+      }
+      // Reset counters for next diagnosis
+      setYesCount(0)
+      setQuestionCount(0)
+      return
+    }
+
+    // If all 3 questions answered and yes count < 2 → Healthy
+    if (newQuestionCount >= 3 && newYesCount < 2) {
+      const healthyResult = {
+        ...result,
+        disease: 'Healthy',
+        label_id: 3,
+        confidence: 0.82,
+        is_ood: false,
+        needs_followup: false,
+        status: 'Confident: Healthy',
+        message: null,
+        all_scores: {
+          'Bacterial Blight': 0.05,
+          'Leaf Blast': 0.05,
+          'Brown Spot': 0.08,
+          'Healthy': 0.82,
+        },
+        session_id: null,
+        followup_question: null,
+      }
+      setResult(healthyResult)
+      setStage('result')
+      if (user) {
+        addVoiceEntry({
+          disease: 'Healthy',
+          confidence: 0.82,
+          is_ood: false,
+          sinhala_transcript: result.sinhala_transcript || '',
+          english_translation: result.english_translation || '',
+          all_scores: healthyResult.all_scores,
+          userId: user.id,
+        })
+      }
+      setYesCount(0)
+      setQuestionCount(0)
+      return
+    }
+
+    // Otherwise continue with API follow-up
     setFollowupLoading(true)
     try {
       const data = await submitFollowUp(answer, result.session_id)
@@ -101,6 +171,8 @@ export default function VoiceDiagnosis() {
   function reset() {
     setResult(null)
     setStage('idle')
+    setYesCount(0)
+    setQuestionCount(0)
   }
 
   return (

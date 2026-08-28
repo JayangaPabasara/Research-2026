@@ -1,53 +1,33 @@
 import { useNavigate } from 'react-router-dom'
 import { Mic, Leaf, Bug } from 'lucide-react'
 import Card from '@/components/ui/Card'
-import Badge from '@/components/ui/Badge'
-import Button from '@/components/ui/Button'
 import { useAuthStore } from '@/store/authStore'
 import { useDiagnosisStore } from '@/store/diagnosisStore'
 import { formatDate } from '@/lib/disease'
 
-interface ModuleCard {
-  key: string
-  title: string
-  subtitle: string
-  description: string
-  tags: string[]
-  icon: typeof Mic
-  iconBg: string
-  to: string
-  featured?: boolean
-}
-
-const MODULES: ModuleCard[] = [
+const MODULES = [
   {
     key: 'voice',
-    title: 'හඬ රෝග නිර්ණය',
-    subtitle: 'Voice-Based Disease Diagnosis',
-    description: 'සිංහලෙන් ලක්ෂණ විස්තර කර රෝගය හඳුනාගන්න',
-    tags: ['SVM 96.67% F1', 'Whisper ASR', 'OOD Detection'],
     icon: Mic,
+    label: 'හඬ රෝගය',
+    hint: 'Sinhala voice input',
     iconBg: 'bg-amber',
     to: '/voice',
     featured: true,
   },
   {
     key: 'leaf',
-    title: 'කොළ රෝග හඳුනාගැනීම',
-    subtitle: 'Leaf Image Classification',
-    description: 'ගොයම් කොළ ඡායාරූපයෙන් රෝගය හඳුනාගන්න',
-    tags: ['CNN EfficientNet-B3', 'Grad-CAM', 'OOD Detection'],
     icon: Leaf,
+    label: 'කොළ රෝගය',
+    hint: 'Upload leaf photo',
     iconBg: 'bg-green-soft',
     to: '/leaf',
   },
   {
     key: 'pest',
-    title: 'කෘමි හඳුනාගැනීම',
-    subtitle: 'Pest Detection',
-    description: 'කෘමිය ඡායාරූපයෙන් හඳුනාගෙන ප්‍රතිකාර ලබාගන්න',
-    tags: ['DenseNet121', 'Few-Shot Learning', 'OOD Detection'],
     icon: Bug,
+    label: 'කෘමි හඳුනාගැනීම',
+    hint: 'Upload pest photo',
     iconBg: 'bg-amber-dark',
     to: '/pest',
   },
@@ -71,34 +51,34 @@ export default function Home() {
         <p className="font-sinhala text-forest-muted">ඔබේ ගොයමේ රෝගය හඳුනාගැනීමට ක්‍රමයක් තෝරන්න</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-3 gap-4">
         {MODULES.map((mod) => (
-          <Card
+          <button
             key={mod.key}
-            hoverable
-            className={mod.featured ? 'border-2 border-amber' : ''}
+            onClick={() => navigate(mod.to)}
+            className={`flex flex-col items-center gap-3 rounded-2xl p-5 text-center
+              transition-all active:scale-95 hover:shadow-md
+              ${mod.featured
+                ? 'bg-amber text-white shadow-md'
+                : 'bg-white text-forest shadow-sm hover:bg-beige'
+              }`}
+            aria-label={mod.label}
           >
-            <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full ${mod.iconBg}`}>
-              <mod.icon className="h-7 w-7 text-white" />
+            <div className={`flex h-12 w-12 items-center justify-center rounded-full
+              ${mod.featured ? 'bg-white/20' : mod.iconBg}`}>
+              <mod.icon className={`h-6 w-6 ${mod.featured ? 'text-white' : 'text-white'}`} />
             </div>
-            <h3 className="font-sinhala text-lg font-bold text-forest">{mod.title}</h3>
-            <p className="text-sm text-forest-muted">{mod.subtitle}</p>
-            <p className="font-sinhala mt-2 text-sm text-forest-light">{mod.description}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {mod.tags.map((tag) => (
-                <Badge key={tag} tone="amber">
-                  {tag}
-                </Badge>
-              ))}
+            <div>
+              <p className={`font-sinhala text-sm font-bold
+                ${mod.featured ? 'text-white' : 'text-forest'}`}>
+                {mod.label}
+              </p>
+              <p className={`text-xs mt-0.5
+                ${mod.featured ? 'text-white/70' : 'text-forest-muted'}`}>
+                {mod.hint}
+              </p>
             </div>
-            <Button
-              variant={mod.featured ? 'primary' : 'outline'}
-              className="mt-5 w-full font-sinhala"
-              onClick={() => navigate(mod.to)}
-            >
-              ආරම්භ කරන්න | Start
-            </Button>
-          </Card>
+          </button>
         ))}
       </div>
 

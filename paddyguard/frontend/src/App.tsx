@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import AppShell from '@/components/layout/AppShell'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
+import { scheduleWeatherChecks } from '@/lib/weatherNotification'
+import { useAuthStore } from '@/store/authStore'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import StaffLogin from '@/pages/StaffLogin'
@@ -23,6 +26,13 @@ function Protected({ allow, children }: { allow: Array<'FARMER' | 'EXPERT' | 'SU
 }
 
 export default function App() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  useEffect(() => {
+    if (isAuthenticated) {
+      scheduleWeatherChecks()
+    }
+  }, [isAuthenticated])
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />

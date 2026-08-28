@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { formatConfidence } from '@/lib/disease'
 
@@ -25,8 +24,6 @@ export default function FollowUpDialog({
   onSkip,
   loading = false,
 }: FollowUpDialogProps) {
-  const [recording, setRecording] = useState(false)
-
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -65,24 +62,36 @@ export default function FollowUpDialog({
             <p className="mt-1 text-sm italic text-forest-muted">{questionEn}</p>
           </div>
 
-          <div className="mb-5 flex justify-center">
-            <button
-              onClick={() => setRecording((r) => !r)}
-              className={`flex h-16 w-16 items-center justify-center rounded-full border-4 shadow-lg transition-colors ${
-                recording ? 'border-red-soft bg-red-50' : 'border-forest bg-white'
-              }`}
-            >
-              <Mic className={`h-7 w-7 ${recording ? 'text-red-soft' : 'text-forest'}`} />
-            </button>
-          </div>
-
-          <div className="flex gap-3">
-            <Button className="flex-1" variant="outline" onClick={() => onAnswer('නෑ')} loading={loading}>
-              නෑ | No
-            </Button>
-            <Button className="flex-1" variant="primary" onClick={() => onAnswer('ඔව්')} loading={loading}>
-              ඔව් | Yes
-            </Button>
+          <p className="mb-2 text-center text-xs text-forest-muted">
+            ඔබේ පිළිතුර තෝරන්න | Choose your answer
+          </p>
+          <div className="flex gap-3" role="group" aria-label="Follow-up answer">
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs text-forest-muted">රෝගය නොමැත | Symptom absent</span>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={() => onAnswer('නෑ')}
+                loading={loading}
+                aria-label="No — this symptom is not present"
+                title="No — this symptom is not present"
+              >
+                නෑ | No
+              </Button>
+            </div>
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-xs text-forest-muted">රෝගය ඇත | Symptom present</span>
+              <Button
+                className="w-full"
+                variant="primary"
+                onClick={() => onAnswer('ඔව්')}
+                loading={loading}
+                aria-label="Yes — this symptom is present"
+                title="Yes — this symptom is present"
+              >
+                ඔව් | Yes
+              </Button>
+            </div>
           </div>
 
           <button onClick={onSkip} className="mt-4 w-full text-center text-sm text-forest-muted underline">
