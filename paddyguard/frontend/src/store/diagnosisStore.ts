@@ -92,6 +92,10 @@ interface DiagnosisState {
     entry: Omit<PestHistoryEntry, 'id' | 'timestamp'>
   ) => void
 
+  deleteVoiceEntry: (id: string) => void
+
+  clearVoiceHistory: (userId: string) => void
+
   deletePestEntry: (id: string) => void
 
   clearPestHistory: (userId: string) => void
@@ -152,6 +156,36 @@ export const useDiagnosisStore = create<DiagnosisState>((set, get) => ({
 
     set({
       pestHistory,
+    })
+  },
+
+  deleteVoiceEntry: (id) => {
+    const voiceHistory = get().voiceHistory.filter(
+      (entry) => entry.id !== id,
+    )
+
+    persist(
+      voiceHistory,
+      get().pestHistory,
+    )
+
+    set({
+      voiceHistory,
+    })
+  },
+
+  clearVoiceHistory: (userId) => {
+    const voiceHistory = get().voiceHistory.filter(
+      (entry) => entry.userId !== userId,
+    )
+
+    persist(
+      voiceHistory,
+      get().pestHistory,
+    )
+
+    set({
+      voiceHistory,
     })
   },
 
