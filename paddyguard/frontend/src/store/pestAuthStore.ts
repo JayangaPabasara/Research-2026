@@ -14,8 +14,8 @@ interface PestAuthState {
 
 const STORAGE_KEY = 'paddyguard_pest_auth'
 
-const ADMIN_USERNAME = 'Kalhara'
-const ADMIN_PASSWORD = 'Kavindu@17'
+const ADMIN_USERNAME = import.meta.env.VITE_PEST_ADMIN_USERNAME
+const ADMIN_PASSWORD = import.meta.env.VITE_PEST_ADMIN_PASSWORD
 
 function loadInitial(): Pick<PestAuthState, 'user' | 'isAuthenticated'> {
   const raw = localStorage.getItem(STORAGE_KEY)
