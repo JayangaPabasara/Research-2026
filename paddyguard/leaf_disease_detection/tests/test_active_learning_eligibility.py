@@ -29,6 +29,22 @@ def test_unverified_or_blank_label_is_not_eligible():
     }) is False
 
 
+def test_ood_expert_verification_is_not_eligible_for_training():
+    assert PredictionRepository.is_active_learning_eligible({
+        "review_status": "verified",
+        "expert_validated_disease": "OOD",
+        "status": "OOD",
+        "approved_for_training": True,
+    }) is False
+
+    assert PredictionRepository.is_approved_for_training({
+        "review_status": "verified",
+        "expert_validated_disease": "OOD",
+        "status": "OOD",
+        "approved_for_training": True,
+    }) is False
+
+
 def test_mongo_count_flow_for_verified_approved_and_consumed_samples():
     repo = PredictionRepository()
     case_id = "REGRESSION_TEST_PENDING_001"

@@ -157,3 +157,47 @@ def list_model_candidates():
     except Exception as exc:
         logger.error(f"Error listing model candidates: {exc}", exc_info=True)
         return jsonify({"detail": str(exc)}), 500
+
+
+@model_candidates_bp.route("/api/expert/model-candidates/<candidate_id>", methods=["DELETE"])
+@token_required(required_role="SUPER_ADMIN")
+def delete_model_candidate(candidate_id):
+    try:
+        candidate = g.candidate_repo.find_by_candidate_id(candidate_id)
+        if not candidate:
+            return jsonify({"detail": "Candidate not found"}), 404
+
+        active_model = g.deployment_repo.find_active() if hasattr(g, 'deployment_repo') else None
+        if active_model and getattr(active_model, 'checkpoint_path', None):
+            active_name = os.path.basename(active_model.checkpoint_path)
+            if candidate.filename and active_name and active_name == candidate.filename:
+                return jsonify({"detail": "Cannot delete the currently deployed model."}), 409
+
+        queued_or_running_jobs = []
+        if hasattr(g, 'training_repo'):
+            jobs = g.training_repo.list_all()
+            for job in jobs:
+                if job.status in ["QUEUED", "RUNNING", "PENDING", "COMPLETED", "PROMOTED"] and getattr(job, 'candidate_checkpoint', None):
+                    candidate_file = os.path.basename(job.candidate_checkpoint)
+                    if candidate.filename and candidate_file == candidate.filename:
+                        queued_or_running_jobs.append(job.job_id)
+
+        if queued_or_running_jobs:
+            return jsonify({"detail": "Cannot delete this candidate because it is referenced by a training job."}), 409
+
+        stored_path = getattr(candidate, 'stored_path', None)
+        if stored_path and os.path.exists(stored_path):
+            try:
+                allowed_root = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "models", "candidates")
+                allowed_root = os.path.normpath(allowed_root)
+                candidate_abs = os.path.normpath(stored_path)
+                if os.path.commonpath([allowed_root, candidate_abs]) == allowed_root:
+                    os.remove(candidate_abs)
+            except Exception as exc:
+                logger.warning(f"Could not remove candidate checkpoint file for {candidate_id}: {exc}")
+
+        g.candidate_repo.collection.delete_one({"candidate_id": candidate_id})
+        return jsonify({"message": "Candidate deleted successfully."})
+    except Exception as exc:
+        logger.error(f"Error deleting model candidate {candidate_id}: {exc}", exc_info=True)
+        return jsonify({"detail": str(exc)}), 500

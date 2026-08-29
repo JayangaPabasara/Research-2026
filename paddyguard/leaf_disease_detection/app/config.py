@@ -11,6 +11,11 @@ except ImportError:
 
 class Settings:
     def __init__(self):
+        try:
+            self.port = int(os.getenv("PORT", "8000"))
+        except ValueError:
+            self.port = 8000
+
         self.model_path = os.getenv("MODEL_PATH", "models/PaddyGuard_active_learning_round2.pth")
         self.database_url = os.getenv("DATABASE_URL", "sqlite:///./data/paddyguard.db")
         self.frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")

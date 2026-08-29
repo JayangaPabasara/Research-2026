@@ -106,4 +106,4 @@ def teardown_db(exception=None):
 register_blueprints(app)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=settings.port, debug=True)

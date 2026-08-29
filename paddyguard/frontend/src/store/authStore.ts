@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem('paddyguard_leaf_auth')
+    sessionStorage.removeItem('paddyguard_leaf_analysis_state')
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
   },
 }))

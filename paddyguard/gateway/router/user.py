@@ -4,7 +4,17 @@ from fastapi.responses import JSONResponse
 import httpx, os
 
 router = APIRouter()
-USER_MGMT_URL = os.getenv("USER_MGMT_URL", "http://user_management:8005")
+
+def _default_service_url(container_url: str, local_url: str) -> str:
+    override = os.getenv("USER_MGMT_URL")
+    if override:
+        return override
+    if os.path.exists("/.dockerenv"):
+        return container_url
+    return local_url
+
+
+USER_MGMT_URL = _default_service_url("http://user_management:8005", "http://localhost:8005")
 
 
 async def _forward(request: Request, method: str, path: str, json=None):
