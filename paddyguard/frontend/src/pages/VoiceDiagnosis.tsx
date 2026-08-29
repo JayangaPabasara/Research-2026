@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Mic, Square, UploadCloud } from 'lucide-react'
+import { Mic, Square, UploadCloud, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -11,6 +11,7 @@ import OODWarning from '@/components/voice/OODWarning'
 import { useAudioRecorder } from '@/hooks/useAudioRecorder'
 import { diagnoseVoice, submitFollowUp } from '@/lib/voiceApi'
 import type { VoiceDiagnosisResult } from '@/lib/voiceApi'
+import { registerAudio } from '@/lib/audioPlayer'
 import { useAuthStore } from '@/store/authStore'
 import { useDiagnosisStore } from '@/store/diagnosisStore'
 
@@ -26,12 +27,21 @@ export default function VoiceDiagnosis() {
   const [stage, setStage] = useState<Stage>('idle')
   const [result, setResult] = useState<VoiceDiagnosisResult | null>(null)
   const [followupLoading, setFollowupLoading] = useState(false)
-  const [yesCount, setYesCount] = useState(0)
-  const [questionCount, setQuestionCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recorder = useAudioRecorder()
   const user = useAuthStore((s) => s.user)
   const addVoiceEntry = useDiagnosisStore((s) => s.addVoiceEntry)
+
+  // Novelty 4: Auto-play follow-up question TTS — routed through the shared
+  // audio singleton so it can never overlap with the result clip.
+  useEffect(() => {
+    if (stage === 'followup' && result?.question_tts_b64) {
+      const audio = new Audio(`data:audio/mp3;base64,${result.question_tts_b64}`)
+      registerAudio(audio)
+      const timer = setTimeout(() => audio.play().catch(() => {}), 400)
+      return () => clearTimeout(timer)
+    }
+  }, [stage, result?.question_tts_b64])
 
   function handleResult(data: VoiceDiagnosisResult) {
     setResult(data)
@@ -90,73 +100,9 @@ export default function VoiceDiagnosis() {
   async function handleFollowUpAnswer(answer: string) {
     if (!result?.session_id) return
 
-    const isYes = answer === 'ඔව්' || answer.toLowerCase() === 'yes'
-    const newYesCount = isYes ? yesCount + 1 : yesCount
-    const newQuestionCount = questionCount + 1
-
-    setYesCount(newYesCount)
-    setQuestionCount(newQuestionCount)
-
-    // If answered yes to 2 or more questions → show disease result immediately
-    if (newYesCount >= 2) {
-      // Confident enough — show disease based on current result
-      setStage('result')
-      if (user && result) {
-        addVoiceEntry({
-          disease: result.disease,
-          confidence: Math.min(result.confidence + 0.15, 0.95),
-          is_ood: false,
-          sinhala_transcript: result.sinhala_transcript || '',
-          english_translation: result.english_translation || '',
-          all_scores: result.all_scores,
-          userId: user.id,
-        })
-      }
-      // Reset counters for next diagnosis
-      setYesCount(0)
-      setQuestionCount(0)
-      return
-    }
-
-    // If all 3 questions answered and yes count < 2 → Healthy
-    if (newQuestionCount >= 3 && newYesCount < 2) {
-      const healthyResult = {
-        ...result,
-        disease: 'Healthy',
-        label_id: 3,
-        confidence: 0.82,
-        is_ood: false,
-        needs_followup: false,
-        status: 'Confident: Healthy',
-        message: null,
-        all_scores: {
-          'Bacterial Blight': 0.05,
-          'Leaf Blast': 0.05,
-          'Brown Spot': 0.08,
-          'Healthy': 0.82,
-        },
-        session_id: null,
-        followup_question: null,
-      }
-      setResult(healthyResult)
-      setStage('result')
-      if (user) {
-        addVoiceEntry({
-          disease: 'Healthy',
-          confidence: 0.82,
-          is_ood: false,
-          sinhala_transcript: result.sinhala_transcript || '',
-          english_translation: result.english_translation || '',
-          all_scores: healthyResult.all_scores,
-          userId: user.id,
-        })
-      }
-      setYesCount(0)
-      setQuestionCount(0)
-      return
-    }
-
-    // Otherwise continue with API follow-up
+    // Every answer goes to the real backend follow-up endpoint — the
+    // classifier decides whether it's confident enough to conclude or
+    // needs another question (see confidence_trajectory in the result).
     setFollowupLoading(true)
     try {
       const data = await submitFollowUp(answer, result.session_id)
@@ -171,112 +117,142 @@ export default function VoiceDiagnosis() {
   function reset() {
     setResult(null)
     setStage('idle')
-    setYesCount(0)
-    setQuestionCount(0)
   }
 
+  const inputDisabled = stage === 'analysing'
+
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      {stage === 'idle' && (
-        <>
-          <Card className="border-l-4 border-amber bg-beige">
-            <div className="flex items-start gap-3">
-              <Mic className="mt-0.5 h-5 w-5 shrink-0 text-amber" />
-              <div>
-                <p className="font-sinhala font-medium text-forest">ගොයම් රෝගයේ ලක්ෂණ ගැන සිංහලෙන් කතා කරන්න</p>
-                <p className="text-sm text-forest-muted">Describe your paddy disease symptoms in Sinhala</p>
-              </div>
-            </div>
-          </Card>
-
-          <div className="flex flex-col items-center gap-3 py-4">
-            <button
-              onClick={handleStart}
-              className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-forest bg-white shadow-2xl transition-transform active:scale-95"
-            >
-              <Mic className="h-12 w-12 text-forest" />
-            </button>
-            <p className="text-sm text-forest-muted">ස්පර්ශ කරන්න | Tap to record</p>
-          </div>
-
-          <div className="flex items-center gap-3 text-forest-muted">
-            <div className="h-px flex-1 bg-beige" />
-            <span className="text-xs">හෝ | or</span>
-            <div className="h-px flex-1 bg-beige" />
-          </div>
-
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-beige bg-beige/40 px-4 py-6 text-center hover:border-amber"
-          >
-            <UploadCloud className="h-6 w-6 text-amber" />
-            <span className="font-sinhala text-sm text-forest">ශ්‍රව්‍ය ගොනුවක් ඇතුළු කරන්න</span>
-            <span className="text-xs text-forest-muted">.ogg .mp3 .wav .webm .m4a</span>
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".ogg,.mp3,.wav,.webm,.m4a,audio/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-
-          <Card>
-            <p className="mb-3 text-xs font-semibold uppercase text-forest-muted">Example Symptoms</p>
-            <div className="space-y-2">
-              {EXAMPLES.map((ex) => (
-                <div key={ex} className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-soft" />
-                  <span className="font-sinhala text-sm text-forest-light">{ex}</span>
+    <div className="mx-auto max-w-6xl">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
+        {/* ── LEFT: Voice input ─────────────────────────────────────────── */}
+        <div className="space-y-6">
+          {stage === 'recording' ? (
+            <Card>
+              <div className="flex flex-col items-center gap-6 py-6">
+                <div className="relative flex h-32 w-32 items-center justify-center">
+                  <span className="absolute h-40 w-40 animate-recording-ring rounded-full border-2 border-red-400" />
+                  <button
+                    onClick={handleStop}
+                    className="relative flex h-32 w-32 items-center justify-center rounded-full border-4 border-red-soft bg-red-50 shadow-2xl"
+                  >
+                    <Square className="h-10 w-10 text-red-soft" />
+                  </button>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </>
-      )}
+                <div className="flex items-center gap-2 text-sm text-red-soft">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-soft" />
+                  <span>
+                    {String(Math.floor(recorder.seconds / 60)).padStart(1, '0')}:
+                    {String(recorder.seconds % 60).padStart(2, '0')} · පටිගත වෙමින්
+                  </span>
+                </div>
 
-      {stage === 'recording' && (
-        <div className="flex flex-col items-center gap-6 py-6">
-          <div className="relative flex h-32 w-32 items-center justify-center">
-            <span className="absolute h-40 w-40 animate-recording-ring rounded-full border-2 border-red-400" />
-            <button
-              onClick={handleStop}
-              className="relative flex h-32 w-32 items-center justify-center rounded-full border-4 border-red-soft bg-red-50 shadow-2xl"
-            >
-              <Square className="h-10 w-10 text-red-soft" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-red-soft">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-red-soft" />
-            <span>
-              {String(Math.floor(recorder.seconds / 60)).padStart(1, '0')}:
-              {String(recorder.seconds % 60).padStart(2, '0')} · පටිගත වෙමින්
-            </span>
-          </div>
+                <div className="flex h-12 items-end gap-1">
+                  {Array.from({ length: 20 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className="w-1.5 animate-pulse rounded-full bg-amber"
+                      style={{ height: `${20 + ((i * 37) % 60)}%`, animationDelay: `${i * 60}ms` }}
+                    />
+                  ))}
+                </div>
 
-          <div className="flex h-12 items-end gap-1">
-            {Array.from({ length: 20 }).map((_, i) => (
-              <span
-                key={i}
-                className="w-1.5 animate-pulse rounded-full bg-amber"
-                style={{ height: `${20 + ((i * 37) % 60)}%`, animationDelay: `${i * 60}ms` }}
+                <Button variant="danger" size="lg" className="w-full" onClick={handleStop}>
+                  නතර කරන්න | Stop &amp; Analyse
+                </Button>
+              </div>
+            </Card>
+          ) : (
+            <>
+              <Card className="border-l-4 border-amber bg-beige">
+                <div className="flex items-start gap-3">
+                  <Mic className="mt-0.5 h-5 w-5 shrink-0 text-amber" />
+                  <div>
+                    <p className="font-sinhala font-medium text-forest">ගොයම් රෝගයේ ලක්ෂණ ගැන සිංහලෙන් කතා කරන්න</p>
+                    <p className="text-sm text-forest-muted">Describe your paddy disease symptoms in Sinhala</p>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="flex flex-col items-center gap-3 py-4">
+                <button
+                  onClick={handleStart}
+                  disabled={inputDisabled}
+                  className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-forest bg-white shadow-2xl transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Mic className="h-12 w-12 text-forest" />
+                </button>
+                <p className="text-sm text-forest-muted">ස්පර්ශ කරන්න | Tap to record</p>
+              </div>
+
+              <div className="flex items-center gap-3 text-forest-muted">
+                <div className="h-px flex-1 bg-beige" />
+                <span className="text-xs">හෝ | or</span>
+                <div className="h-px flex-1 bg-beige" />
+              </div>
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={inputDisabled}
+                className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-beige bg-beige/40 px-4 py-6 text-center hover:border-amber disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <UploadCloud className="h-6 w-6 text-amber" />
+                <span className="font-sinhala text-sm text-forest">ශ්‍රව්‍ය ගොනුවක් ඇතුළු කරන්න</span>
+                <span className="text-xs text-forest-muted">.ogg .mp3 .wav .webm .m4a</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".ogg,.mp3,.wav,.webm,.m4a,audio/*"
+                className="hidden"
+                onChange={handleFileChange}
               />
-            ))}
-          </div>
 
-          <Button variant="danger" size="lg" className="w-full" onClick={handleStop}>
-            නතර කරන්න | Stop &amp; Analyse
-          </Button>
+              <Card>
+                <p className="mb-3 text-xs font-semibold uppercase text-forest-muted">Example Symptoms</p>
+                <div className="space-y-2">
+                  {EXAMPLES.map((ex) => (
+                    <div key={ex} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-soft" />
+                      <span className="font-sinhala text-sm text-forest-light">{ex}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </>
+          )}
         </div>
-      )}
 
-      {stage === 'analysing' && (
-        <Card>
-          <LoadingSpinner label="විශ්ලේෂණය කරමින්..." labelEn="Analysing your voice recording" />
-        </Card>
-      )}
+        {/* ── RIGHT: Diagnosis output ───────────────────────────────────── */}
+        <div className="space-y-6">
+          {(stage === 'idle' || stage === 'recording') && (
+            <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <Sparkles className="h-8 w-8 text-forest-muted" />
+              <p className="font-sinhala text-sm text-forest-muted">ප්‍රතිඵල මෙහි දිස්වේ</p>
+              <p className="text-xs text-forest-muted">Your diagnosis will appear here</p>
+            </Card>
+          )}
 
-      {stage === 'result' && result && <DiagnosisResult result={result} onNewDiagnosis={reset} />}
+          {stage === 'analysing' && (
+            <Card>
+              <LoadingSpinner label="විශ්ලේෂණය කරමින්..." labelEn="Analysing your voice recording" />
+            </Card>
+          )}
+
+          {stage === 'result' && result && <DiagnosisResult result={result} onNewDiagnosis={reset} />}
+
+          {stage === 'followup' && (
+            <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <Sparkles className="h-8 w-8 animate-pulse text-amber" />
+              <p className="font-sinhala text-sm text-forest-muted">ඔබේ පිළිතුර එනතුරු බලා සිටී</p>
+              <p className="text-xs text-forest-muted">Waiting for your answer below</p>
+            </Card>
+          )}
+
+          {stage === 'ood' && result && (
+            <OODWarning reason={result.ood_reason} message={result.message} onRetry={reset} />
+          )}
+        </div>
+      </div>
 
       {stage === 'followup' && result && (
         <FollowUpDialog
@@ -289,10 +265,6 @@ export default function VoiceDiagnosis() {
           onSkip={reset}
           loading={followupLoading}
         />
-      )}
-
-      {stage === 'ood' && result && (
-        <OODWarning reason={result.ood_reason} message={result.message} onRetry={reset} />
       )}
     </div>
   )

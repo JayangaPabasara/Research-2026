@@ -34,7 +34,7 @@ FOLLOWUP_QUESTIONS = {
             "no_hint" : "no milky drops lesion",
         },
         {
-            "sinhala" : "පැළ හදිසියේ萎 රොඩ වී අළු-කොළ රෝල් වූ කොළ දකිනවා ද?",
+            "sinhala" : "වී පැල හදිසියේම මැලවී ගොස් අළු-කොළ පැහැති රෝල් කරන ලද කොළ තිබේද?",
             "english" : "Have the seedlings wilted suddenly with grayish-green rolled leaves?",
             "yes_hint": "kresek seedling wilting gray green rolled bacterial blight",
             "no_hint" : "no wilting rolled leaves",
@@ -43,8 +43,8 @@ FOLLOWUP_QUESTIONS = {
 
     "Leaf Blast": [
         {
-            "sinhala" : "ලප ඩයිමන්ඩ් හෝ දිගු ඇණ හැඩයෙන් දෙපැත්තෙන් ලසන් ද?",
-            "english" : "Do the spots have a diamond or spindle shape, pointed at both ends?",
+            "sinhala" : "ලප දියමන්ති හෝ දිගු කිරිබත් හැඩැති ද?",
+            "english" : "Are the spots diamond-shaped or long, milkrice-shaped?",
             "yes_hint": "diamond spindle shaped spot pointed leaf blast",
             "no_hint" : "no diamond shape spots",
         },
@@ -64,7 +64,7 @@ FOLLOWUP_QUESTIONS = {
 
     "Brown Spot": [
         {
-            "sinhala" : "ලප රවුම් හෝ ඕවල් හැඩයෙන් දුඹුරු පාට වන අතර කහ රිංගක් ද?",
+            "sinhala" : "ලප රවුම් හෝ ඕවල් හැඩයෙන් දුඹුරු පාට වන අතර කහ වලල්ලක් වටෙට තිබෙද?",
             "english" : "Are the spots round or oval with a brownish color and a yellow ring?",
             "yes_hint": "round oval brown spot yellow halo ring fungal",
             "no_hint" : "no round oval spots",
@@ -76,7 +76,7 @@ FOLLOWUP_QUESTIONS = {
             "no_hint" : "no nutrient deficiency flooded field",
         },
         {
-            "sinhala" : "ධාන්‍ය විවර්ණ වී ඇති හෝ ලප දකිනවා ද?",
+            "sinhala" : "ධාන්‍ය වර්ණ වෙනස් වී ඇති හෝ ලප දකිනවා ද?",
             "english" : "Are the grains discolored or showing spotting?",
             "yes_hint": "grain discoloration spotting brown spot pecky rice",
             "no_hint" : "no grain discoloration",

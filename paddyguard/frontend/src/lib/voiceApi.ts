@@ -18,6 +18,26 @@ export interface VoiceDiagnosisResult {
   question_number?: number
   max_questions?: number
   followup_complete?: boolean
+  tts_audio_b64?:         string | null
+  question_tts_b64?:      string | null
+  severity?: {
+    level:    'mild' | 'moderate' | 'severe'
+    score:    1 | 2 | 3
+    label_si: string
+    label_en: string
+  } | null
+  confidence_trajectory?: Array<{
+    step:       number
+    label:      string
+    disease:    string
+    confidence: number
+  }>
+  audio_quality?: {
+    passed:        boolean
+    snr_db:        number | null
+    silence_ratio: number | null
+    duration_sec:  number | null
+  } | null
 }
 
 export async function diagnoseVoice(audio: Blob, filename: string): Promise<VoiceDiagnosisResult> {

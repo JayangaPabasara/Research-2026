@@ -6,7 +6,7 @@ export interface DiseaseInfo {
 
 const DISEASE_TABLE: Record<string, DiseaseInfo> = {
   'bacterial blight': { en: 'Bacterial Blight', si: 'බැක්ටීරියා අංගමාරය', color: '#E74C3C' },
-  'leaf blast': { en: 'Leaf Blast', si: 'කොල පිලීර රෝගය', color: '#F4991A' },
+  'leaf blast': { en: 'Leaf Blast', si: 'කොල පාළු රෝගය', color: '#F4991A' },
   'brown spot': { en: 'Brown Spot', si: 'දුඹුරු පුල්ලි රෝගය', color: '#8B4513' },
   healthy: { en: 'Healthy', si: 'නීරෝගී', color: '#27AE60' },
 }

@@ -2,12 +2,11 @@
 C1 API endpoints: /diagnose and /followup
 Owner: Jayonga Weerasinghe (IT22273680)
 
-Changes from v2:
-- Follow-up questions returned in Sinhala (farmer-friendly)
-- Both Sinhala + English question returned in response
-- Farmer can answer in Sinhala (ඔව්/නෑ) or English (yes/no)
-- resolve_answer() converts Sinhala yes/no → English SVM keywords
-- Error messages translated to Sinhala
+Novelties added in this version:
+  Novelty 2: Audio quality gate before ASR
+  Novelty 3: Confidence trajectory tracking across follow-up questions
+  Novelty 4: Sinhala TTS voice output returned in response
+  Novelty 5: Symptom severity scoring added to response
 """
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
@@ -22,55 +21,50 @@ from pipeline.session_store import (
     get_session,
     update_session,
     delete_session,
+    append_trajectory,
 )
+# ── 4 novelty imports ─────────────────────────────────────────────────────────
+from pipeline.audio_quality import check_audio_quality      # Novelty 2
+from pipeline.severity_scorer import score_severity         # Novelty 5
+from pipeline.tts import synthesise_result, synthesise_question  # Novelty 4
 
 import tempfile, os, logging
 
 logger = logging.getLogger("voice_nlp.endpoints")
-
 router = APIRouter()
-
 MAX_FOLLOWUP_QUESTIONS = 3
 
-
-# ── Request / Response schemas ─────────────────────────────────────────────
 
 class FollowUpRequest(BaseModel):
     answer: str
     session_id: str
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
-
 def _save_temp_audio(audio_bytes: bytes, suffix: str) -> str:
-    """Write audio bytes to a temp file and return its path."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(audio_bytes)
         return tmp.name
 
 
 def _cleanup(path: str) -> None:
-    """Silently remove a temp file."""
     try:
         os.unlink(path)
     except OSError:
         pass
 
 
-# ── POST /diagnose ─────────────────────────────────────────────────────────
-
 @router.post("/diagnose")
 async def diagnose(audio: UploadFile = File(...)):
     """
-    Full pipeline:
-    1. Receive Sinhala audio file
-    2. ASR  : audio  → Sinhala text  (Whisper)
-    3. Trans : Sinhala → English text (Google Translate)
-    4. Classify: English text → disease + OOD check (SVM + 5-signal OOD v4.1)
-    5a. Confident  (conf ≥ 0.75)  → return disease result directly
-    5b. Low conf   (0.50–0.75)    → create Redis session, return first
-                                    follow-up question in SINHALA
-    5c. OOD        (conf < 0.50)  → return OOD rejection message
+    Full pipeline with 4 novelties integrated:
+
+    1. Audio Quality Gate   (Novelty 2) — validate before ASR
+    2. ASR                             — Sinhala text
+    3. Translation                     — English text
+    4. Severity Scoring    (Novelty 5) — mild/moderate/severe from language
+    5. Classify + OOD                  — disease + confidence
+    6. TTS Output          (Novelty 4) — Sinhala speech audio
+    7. Session + Trajectory (Novelty 3) — track confidence across follow-ups
     """
 
     # ── Validate content type ──────────────────────────────────────────
@@ -80,7 +74,6 @@ async def diagnose(audio: UploadFile = File(...)):
             detail=f"ගොනුව ශ්‍රව්‍ය ගොනුවක් විය යුතුය. ලැබුණේ: {audio.content_type}"
         )
 
-    # ── Read audio bytes ───────────────────────────────────────────────
     audio_bytes = await audio.read()
     if not audio_bytes:
         raise HTTPException(
@@ -92,7 +85,40 @@ async def diagnose(audio: UploadFile = File(...)):
     tmp_path = _save_temp_audio(audio_bytes, suffix)
 
     try:
-        # Step 1 — ASR: audio → Sinhala text
+        # ─────────────────────────────────────────────────────────────────
+        # NOVELTY 2: Audio Quality Gate
+        # Check signal quality BEFORE sending to Whisper
+        # Prevents hallucination from silent/clipped/noisy recordings
+        # ─────────────────────────────────────────────────────────────────
+        quality = check_audio_quality(tmp_path)
+        logger.info(
+            "Audio quality: passed=%s snr=%s silence=%s duration=%s",
+            quality.passed, quality.snr, quality.silence_ratio, quality.duration
+        )
+        if not quality.passed:
+            return {
+                "disease"           : "Unknown / OOD",
+                "label_id"          : -1,
+                "confidence"        : 0.0,
+                "is_ood"            : True,
+                "ood_reason"        : "audio_quality",
+                "needs_followup"    : False,
+                "status"            : "Audio quality check failed",
+                "message"           : quality.reason,
+                "message_en"        : quality.reason_en,
+                "all_scores"        : {},
+                "sinhala_transcript": None,
+                "english_translation": None,
+                "session_id"        : None,
+                "followup_question" : None,
+                "followup_question_en": None,
+                "tts_audio_b64"     : None,   # Novelty 4
+                "severity"          : None,   # Novelty 5
+                "confidence_trajectory": [],  # Novelty 3
+                "audio_quality"     : quality.to_dict(),  # Novelty 2
+            }
+
+        # ── ASR: audio → Sinhala text ──────────────────────────────────
         logger.info("ASR: transcribing audio (%d bytes)...", len(audio_bytes))
         sinhala_text = transcribe_audio(tmp_path)
         if not sinhala_text or not sinhala_text.strip():
@@ -102,11 +128,19 @@ async def diagnose(audio: UploadFile = File(...)):
             )
         logger.info("ASR result: %s", sinhala_text)
 
-        # Step 2 — Translate: Sinhala → English
+        # ── Translate: Sinhala → English ───────────────────────────────
         english_text = translate_to_english(sinhala_text)
         logger.info("Translation: %s", english_text)
 
-        # Step 3 — Classify + OOD check
+        # ─────────────────────────────────────────────────────────────────
+        # NOVELTY 5: Severity Scoring
+        # Score infection severity from language intensity
+        # Runs on both Sinhala + English for maximum signal coverage
+        # ─────────────────────────────────────────────────────────────────
+        severity = score_severity(sinhala_text, english_text)
+        logger.info("Severity: %s", severity)
+
+        # ── Classify + OOD check ───────────────────────────────────────
         result = classify_with_ood(english_text)
         logger.info(
             "Classification: %s  conf=%.3f  ood=%s  followup=%s",
@@ -114,44 +148,87 @@ async def diagnose(audio: UploadFile = File(...)):
             result["is_ood"], result["needs_followup"]
         )
 
-        # Step 4 — Handle follow-up: create session + attach first question
+        # ─────────────────────────────────────────────────────────────────
+        # NOVELTY 4: TTS — synthesise Sinhala speech for the result
+        # ─────────────────────────────────────────────────────────────────
+        tts_audio = synthesise_result(
+            disease        = result["disease"],
+            confidence     = result["confidence"],
+            needs_followup = result["needs_followup"],
+            is_ood         = result["is_ood"],
+            severity       = severity if not result["is_ood"] else None,
+        )
+
+        # ─────────────────────────────────────────────────────────────────
+        # NOVELTY 3: Confidence trajectory — initialised in create_session
+        # ─────────────────────────────────────────────────────────────────
         if result["needs_followup"] and not result["is_ood"]:
             session_id    = create_session(
                 disease    = result["disease"],
                 confidence = result["confidence"],
             )
-            # get_followup_question now returns a dict with sinhala + english
             question_dict = get_followup_question(
                 disease_prediction = result["disease"],
                 question_index     = 0,
             )
-            # Store question dict in session so /followup can resolve yes/no
             update_session(session_id, {
-                "disease"        : result["disease"],
-                "confidence"     : result["confidence"],
-                "question_index" : 0,
-                "answers"        : [],
-                "question_dict"  : question_dict,   # ← stored for resolve_answer()
+                "disease"               : result["disease"],
+                "original_disease"      : result["disease"],
+                "confidence"            : result["confidence"],
+                "question_index"        : 0,
+                "answers"               : [],
+                "question_dict"         : question_dict,
+                "confidence_trajectory" : [
+                    {
+                        "step"      : 0,
+                        "label"     : "Initial",
+                        "disease"   : result["disease"],
+                        "confidence": round(result["confidence"], 3),
+                    }
+                ],
             })
+
+            # TTS for the follow-up question (Novelty 4)
+            question_tts = synthesise_question(question_dict["sinhala"])
+
             return {
                 **result,
-                "sinhala_transcript"  : sinhala_text,
-                "english_translation" : english_text,
-                "session_id"          : session_id,
-                "followup_question"   : question_dict["sinhala"],   # shown to farmer
-                "followup_question_en": question_dict["english"],   # for logging/debug
-                "question_number"     : 1,
-                "max_questions"       : MAX_FOLLOWUP_QUESTIONS,
+                "sinhala_transcript"    : sinhala_text,
+                "english_translation"   : english_text,
+                "session_id"            : session_id,
+                "followup_question"     : question_dict["sinhala"],
+                "followup_question_en"  : question_dict["english"],
+                "question_number"       : 1,
+                "max_questions"         : MAX_FOLLOWUP_QUESTIONS,
+                # Novelties
+                "tts_audio_b64"         : tts_audio,        # Novelty 4
+                "question_tts_b64"      : question_tts,     # Novelty 4
+                "severity"              : severity,          # Novelty 5
+                "confidence_trajectory" : [                  # Novelty 3
+                    {
+                        "step"      : 0,
+                        "label"     : "Initial",
+                        "disease"   : result["disease"],
+                        "confidence": round(result["confidence"], 3),
+                    }
+                ],
+                "audio_quality"         : quality.to_dict(),# Novelty 2
             }
 
-        # Step 5 — OOD or confident result — no session needed
+        # Confident or OOD result
         return {
             **result,
-            "sinhala_transcript"  : sinhala_text,
-            "english_translation" : english_text,
-            "session_id"          : None,
-            "followup_question"   : None,
-            "followup_question_en": None,
+            "sinhala_transcript"    : sinhala_text,
+            "english_translation"   : english_text,
+            "session_id"            : None,
+            "followup_question"     : None,
+            "followup_question_en"  : None,
+            # Novelties
+            "tts_audio_b64"         : tts_audio,    # Novelty 4
+            "question_tts_b64"      : None,
+            "severity"              : severity if not result["is_ood"] else None,  # Novelty 5
+            "confidence_trajectory" : [],            # Novelty 3 — no session
+            "audio_quality"         : quality.to_dict(),  # Novelty 2
         }
 
     except HTTPException:
@@ -166,114 +243,122 @@ async def diagnose(audio: UploadFile = File(...)):
         _cleanup(tmp_path)
 
 
-# ── POST /followup ─────────────────────────────────────────────────────────
-
 @router.post("/followup")
 async def followup(req: FollowUpRequest):
     """
-    Accept farmer's follow-up answer in Sinhala (ඔව්/නෑ) or English (yes/no).
-
-    Flow:
-    - Load session from Redis using session_id
-    - Retrieve stored question_dict so we can resolve yes/no → SVM keywords
-    - resolve_answer() converts ඔව් → English symptom keywords for SVM
-    - Re-classify using resolved English text
-    - If still low confidence AND questions remaining → return next Sinhala question
-    - If confident OR max questions reached → delete session, return final result
+    Accept farmer follow-up answer.
+    Novelty 3: Appends each step to confidence_trajectory.
+    Novelty 4: Returns TTS for next question and final result.
     """
-
-    # ── Load session ───────────────────────────────────────────────────
     session = get_session(req.session_id)
     if session is None:
         raise HTTPException(
             status_code=404,
-            detail=(
-                "සැසිය හමු නොවීය හෝ කල් ඉකුත් විය. "
-                "කරුණාකර නව රෝග විනිශ්චයක් ආරම්භ කරන්න."
-            )
+            detail="සැසිය හමු නොවීය හෝ කල් ඉකුත් විය. නව රෝග විනිශ්චයක් ආරම්භ කරන්න."
         )
 
-    question_index = session.get("question_index", 0)
-    disease        = session.get("disease", "")
-    answers        = session.get("answers", [])
-    question_dict  = session.get("question_dict", {})   # ← stored from /diagnose
+    question_index    = session.get("question_index", 0)
+    answers           = session.get("answers", [])
+    question_dict     = session.get("question_dict", {})
+    trajectory        = session.get("confidence_trajectory", [])
+    original_disease  = session.get("original_disease", session.get("disease"))
 
-    # ── Guard: reject if somehow over max ─────────────────────────────
     if question_index >= MAX_FOLLOWUP_QUESTIONS:
         delete_session(req.session_id)
         raise HTTPException(
             status_code=400,
-            detail=(
-                "උපරිම ප්‍රශ්න ගණන ඉක්මවා ඇත. "
-                "කරුණාකර නව රෝග විනිශ්චයක් ආරම්භ කරන්න."
-            )
+            detail="උපරිම ප්‍රශ්න ගණන ඉක්මවා ඇත. නව රෝග විනිශ්චයක් ආරම්භ කරන්න."
         )
 
-    # ── Resolve Sinhala yes/no → English SVM keywords ─────────────────
-    # ඔව් → yes_hint: "round oval brown spot yellow halo ring fungal"
-    # නෑ  → no_hint:  "no round oval spots"
-    # free text → pass as-is, SVM classifies directly
     english_answer = resolve_answer(req.answer, question_dict)
+    is_no_answer   = bool(question_dict.get("no_hint")) and english_answer == question_dict.get("no_hint")
+    logger.info("Follow-up Q%d raw='%s' resolved='%s' is_no=%s",
+                question_index+1, req.answer, english_answer, is_no_answer)
 
-    logger.info(
-        "Follow-up Q%d  raw='%s'  resolved='%s'",
-        question_index + 1, req.answer, english_answer
-    )
-
-    # ── Append raw Sinhala answer to history ──────────────────────────
     answers.append(req.answer.strip())
     next_index = question_index + 1
+    result     = classify_with_ood(english_answer)
 
-    # ── Re-classify using resolved English answer ──────────────────────
-    result = classify_with_ood(english_answer)
+    # ─────────────────────────────────────────────────────────────────────
+    # NOVELTY 3: Append this step to confidence trajectory
+    # ─────────────────────────────────────────────────────────────────────
+    trajectory.append({
+        "step"      : next_index,
+        "label"     : f"Q{next_index} — {req.answer[:20]}",
+        "disease"   : result["disease"],
+        "confidence": round(result["confidence"], 3),
+    })
 
-    logger.info(
-        "Follow-up Q%d result: %s  conf=%.3f  followup=%s",
-        question_index + 1,
-        result["disease"], result["confidence"], result["needs_followup"]
-    )
+    logger.info("Follow-up Q%d result: %s conf=%.3f",
+                next_index, result["disease"], result["confidence"])
 
-    # ── Decide: more questions OR final result ─────────────────────────
     still_unsure   = result["needs_followup"] and not result["is_ood"]
     questions_left = next_index < MAX_FOLLOWUP_QUESTIONS
 
-    if still_unsure and questions_left:
-        # Get next bilingual question
+    # If the farmer answered "No", keep working through this disease's
+    # question bank instead of concluding early (e.g. jumping straight to
+    # "Healthy" off one "No"). Only finalise once every question for the
+    # originally suspected disease has been asked.
+    keep_asking = questions_left and (still_unsure or is_no_answer)
+
+    if keep_asking:
         next_question_dict = get_followup_question(
-            disease_prediction = result["disease"],
+            disease_prediction = original_disease,
             question_index     = next_index,
         )
-        # Update session with new state + next question dict
         update_session(req.session_id, {
-            "disease"       : result["disease"],
-            "confidence"    : result["confidence"],
-            "question_index": next_index,
-            "answers"       : answers,
-            "question_dict" : next_question_dict,   # ← update for next /followup call
+            "disease"               : result["disease"],
+            "original_disease"      : original_disease,
+            "confidence"            : result["confidence"],
+            "question_index"        : next_index,
+            "answers"               : answers,
+            "question_dict"         : next_question_dict,
+            "confidence_trajectory" : trajectory,   # Novelty 3
         })
+
+        # Novelty 4: TTS for next question
+        question_tts = synthesise_question(next_question_dict["sinhala"])
+
         return {
             **result,
-            "session_id"          : req.session_id,
-            "followup_question"   : next_question_dict["sinhala"],   # shown to farmer
-            "followup_question_en": next_question_dict["english"],   # for logging
-            "question_number"     : next_index + 1,
-            "max_questions"       : MAX_FOLLOWUP_QUESTIONS,
+            "session_id"            : req.session_id,
+            "followup_question"     : next_question_dict["sinhala"],
+            "followup_question_en"  : next_question_dict["english"],
+            "question_number"       : next_index + 1,
+            "max_questions"         : MAX_FOLLOWUP_QUESTIONS,
+            "tts_audio_b64"         : None,
+            "question_tts_b64"      : question_tts,       # Novelty 4
+            "confidence_trajectory" : trajectory,          # Novelty 3
+            "severity"              : None,
         }
 
-    # ── Final result — clean up session ───────────────────────────────
+    # Final result
     delete_session(req.session_id)
+    logger.info("Follow-up complete after %d Q(s). Final: %s conf=%.3f",
+                next_index, result["disease"], result["confidence"])
 
-    logger.info(
-        "Follow-up complete after %d question(s). Final: %s  conf=%.3f",
-        next_index, result["disease"], result["confidence"]
+    # Novelty 5: severity on final result
+    severity = score_severity("", english_answer)
+
+    # Novelty 4: TTS for final result
+    tts_audio = synthesise_result(
+        disease        = result["disease"],
+        confidence     = result["confidence"],
+        needs_followup = False,
+        is_ood         = result["is_ood"],
+        severity       = severity,
     )
 
     return {
         **result,
-        "session_id"          : None,
-        "followup_question"   : None,
-        "followup_question_en": None,
-        "question_number"     : next_index,
-        "max_questions"       : MAX_FOLLOWUP_QUESTIONS,
-        "followup_complete"   : True,
+        "session_id"            : None,
+        "followup_question"     : None,
+        "followup_question_en"  : None,
+        "question_number"       : next_index,
+        "max_questions"         : MAX_FOLLOWUP_QUESTIONS,
+        "followup_complete"     : True,
+        "tts_audio_b64"         : tts_audio,      # Novelty 4
+        "question_tts_b64"      : None,
+        "confidence_trajectory" : trajectory,      # Novelty 3
+        "severity"              : severity,         # Novelty 5
     }
