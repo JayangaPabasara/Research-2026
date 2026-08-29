@@ -11,15 +11,17 @@ async def diagnose_voice(audio: UploadFile = File(...)):
     """Forward audio file to C1 voice_nlp service for diagnosis.
 
     Timeout is generous: the first Whisper ASR call after a cold start can
-    take several minutes on CPU before the model is warm.
+    take several minutes before the model is warm.
     """
     try:
-        async with httpx.AsyncClient(timeout=240.0) as client:
+        async with httpx.AsyncClient(timeout=600.0) as client:
             files = {"audio": (audio.filename, await audio.read(), audio.content_type)}
             response = await client.post(f"{VOICE_NLP_URL}/diagnose", files=files)
             return JSONResponse(status_code=response.status_code, content=response.json())
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="Voice NLP service unavailable")
+    except httpx.ReadTimeout:
+        raise HTTPException(status_code=504, detail="Voice NLP service timed out")
 
 @router.post("/followup")
 async def followup(payload: dict):

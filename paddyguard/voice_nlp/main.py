@@ -18,6 +18,7 @@ logger = logging.getLogger("voice_nlp")
 
 from api.endpoints import router
 from pipeline.classifier import load_models
+from pipeline.asr import preload_asr
 
 
 @asynccontextmanager
@@ -28,6 +29,8 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 50)
     logger.info("Loading SVM classifier and TF-IDF vectoriser...")
     load_models()
+    logger.info("Loading ASR (Whisper) model...")
+    preload_asr()
     logger.info("All models loaded — ready to serve on port %s",
                 os.getenv("SERVICE_PORT", "8001"))
     yield

@@ -36,6 +36,15 @@ def _load_asr():
         logger.info("ASR model loaded on %s", _device)
 
 
+def preload_asr() -> None:
+    """Load the ASR model eagerly (called at service startup).
+
+    Without this, the model loads lazily on the first /diagnose call,
+    which can take several minutes and blow past the gateway's timeout.
+    """
+    _load_asr()
+
+
 def transcribe_audio(audio_path: str) -> str:
     """
     Convert audio file to Sinhala text transcript.
