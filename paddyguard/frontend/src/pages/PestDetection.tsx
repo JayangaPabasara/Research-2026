@@ -8,7 +8,6 @@ import {
   Loader2,
   ScanSearch,
   ShieldCheck,
-  Trash2,
   Upload,
   X,
 } from 'lucide-react'
@@ -16,24 +15,16 @@ import toast from 'react-hot-toast'
 
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
-import EmptyState from '@/components/ui/EmptyState'
 import PestResult from '@/components/pest/PestResult'
 import PestHistory from '@/components/pest/PestHistory'
 
-import {
-  deleteLearnedPest,
-  detectPest,
-  getLearnedPestClasses,
-  teachNewPest,
-} from '@/lib/pestApi'
-
+import { detectPest } from '@/lib/pestApi'
 import type { PestDetectionResult } from '@/lib/pestApi'
 
 import { useAuthStore } from '@/store/authStore'
 import { useDiagnosisStore } from '@/store/diagnosisStore'
 
-type Tab = 'detect' | 'history' | 'learn'
-type LearnMethod = 'fine_tune' | 'prototype'
+type Tab = 'detect' | 'history'
 
 const ACCEPTED_TYPES = [
   'image/jpeg',
@@ -224,6 +215,7 @@ export default function PestDetection() {
       <div className="flex gap-2 rounded-xl bg-beige p-1">
 
         {/* DETECT */}
+
         <button
           type="button"
           onClick={() => setTab('detect')}
@@ -238,6 +230,7 @@ export default function PestDetection() {
         </button>
 
         {/* HISTORY */}
+
         <button
           type="button"
           onClick={() => setTab('history')}
@@ -249,20 +242,6 @@ export default function PestDetection() {
         >
           <HistoryIcon className="h-4 w-4" />
           History
-        </button>
-
-        {/* TEACH */}
-        <button
-          type="button"
-          onClick={() => setTab('learn')}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
-            tab === 'learn'
-              ? 'bg-white text-forest shadow-sm'
-              : 'text-forest-muted hover:text-forest'
-          }`}
-        >
-          <BrainCircuit className="h-4 w-4" />
-          Teach New Pest
         </button>
 
       </div>
@@ -285,12 +264,6 @@ export default function PestDetection() {
             }
           }}
         />
-      )}
-
-      {/* ================= FEW SHOT ================= */}
-
-      {tab === 'learn' && (
-        <FewShotPanel />
       )}
 
     </div>
@@ -366,6 +339,7 @@ function DetectPanel() {
     setResult(null)
     setAnalysisStep(0)
     setFile(selected)
+
     setPreview(
       URL.createObjectURL(selected),
     )
@@ -403,10 +377,13 @@ function DetectPanel() {
     const startedAt = Date.now()
 
     /*
-     * The AI analysis animation runs alongside the real backend request.
-     * We keep a minimum visual analysis time of ~4 seconds so the user can
-     * clearly see each AI pipeline stage instead of getting an instant result.
+     * AI analysis animation runs alongside
+     * the real backend request.
+     *
+     * Minimum visual analysis time:
+     * approximately 4 seconds.
      */
+
     const stepTimer = window.setInterval(() => {
       setAnalysisStep((current) =>
         Math.min(
@@ -417,23 +394,29 @@ function DetectPanel() {
     }, 500)
 
     try {
-      const data = await detectPest(file)
+      const data =
+        await detectPest(file)
 
       /*
-       * Keep the analysis experience visible for at least 4 seconds.
-       * If the backend itself takes longer, we do not add extra waiting.
+       * Keep the modern AI analysis screen
+       * visible for at least 4 seconds.
        */
-      const elapsed = Date.now() - startedAt
-      const remaining = Math.max(
-        0,
-        4000 - elapsed,
-      )
+
+      const elapsed =
+        Date.now() - startedAt
+
+      const remaining =
+        Math.max(
+          0,
+          4000 - elapsed,
+        )
 
       if (remaining > 0) {
         await wait(remaining)
       }
 
       window.clearInterval(stepTimer)
+
       setAnalysisStep(
         ANALYSIS_STEPS.length - 1,
       )
@@ -443,6 +426,7 @@ function DetectPanel() {
       /*
        * Save detection to user's history.
        */
+
       const user =
         useAuthStore.getState().user
 
@@ -452,9 +436,12 @@ function DetectPanel() {
           | undefined
 
         /*
-         * Create compressed thumbnail only for history.
+         * Create compressed thumbnail
+         * only for history.
+         *
          * Original image is not stored.
          */
+
         try {
           imagePreview =
             await createHistoryPreview(
@@ -500,6 +487,7 @@ function DetectPanel() {
         )
 
       setError(message)
+
       toast.error(message)
 
     } finally {
@@ -518,6 +506,7 @@ function DetectPanel() {
         <div className="mb-4 flex items-start justify-between">
 
           <div>
+
             <h2 className="text-lg font-bold text-forest">
               1. Upload image
             </h2>
@@ -525,6 +514,7 @@ function DetectPanel() {
             <p className="mt-1 text-xs text-forest-muted">
               Upload a clear rice pest photo for all AI checks.
             </p>
+
           </div>
 
           <ImagePlus className="h-5 w-5 text-amber" />
@@ -652,7 +642,7 @@ function DetectPanel() {
             icon={
               <BrainCircuit className="h-4 w-4" />
             }
-            label="OOD + Learning"
+            label="OOD Detection"
           />
 
         </div>
@@ -735,148 +725,211 @@ function AnalysisProgress({
     Math.round(
       ((activeStep + 1) /
         ANALYSIS_STEPS.length) *
-        100,
+      100,
     )
 
   return (
     <div className="relative min-h-[430px] overflow-hidden rounded-2xl border border-green-soft/10 bg-gradient-to-b from-green-soft/[0.04] via-white to-beige/20 px-5 py-6">
 
-      {/* Soft ambient glow */}
+      {/* Ambient glow */}
+
       <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-green-soft/10 blur-3xl" />
+
       <div className="pointer-events-none absolute -bottom-20 -left-16 h-40 w-40 rounded-full bg-amber/10 blur-3xl" />
 
       <div className="relative">
 
         {/* Header */}
+
         <div className="flex items-center justify-between">
+
           <div>
+
             <div className="flex items-center gap-2">
+
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-soft/10 text-green-soft">
+
                 <BrainCircuit className="h-5 w-5" />
+
               </span>
 
               <div>
+
                 <h3 className="text-base font-bold text-forest">
                   Analyzing Pest Image
                 </h3>
+
                 <p className="text-[10px] text-forest-muted">
                   PaddyGuard AI Vision Engine
                 </p>
+
               </div>
+
             </div>
+
           </div>
 
           <span className="rounded-full bg-green-soft/10 px-2.5 py-1 text-[10px] font-bold text-green-soft">
             {progress}%
           </span>
+
         </div>
 
+
         {/* Image scan preview */}
+
         <div className="relative mx-auto mt-5 h-28 w-40 overflow-hidden rounded-2xl border border-green-soft/10 bg-beige/40 shadow-sm">
+
           {preview ? (
+
             <img
               src={preview}
               alt="Analyzing pest"
               className="h-full w-full object-cover opacity-80"
             />
+
           ) : (
+
             <div className="flex h-full items-center justify-center text-green-soft">
               <ScanSearch className="h-8 w-8" />
             </div>
+
           )}
 
           <div className="absolute inset-0 bg-gradient-to-t from-forest/20 via-transparent to-transparent" />
 
-          {/* Animated scanning beam */}
+          {/* Scanning beam */}
+
           <div className="absolute left-0 right-0 top-0 h-0.5 bg-green-soft shadow-[0_0_12px_rgba(34,197,94,0.8)] animate-[bounce_1.8s_ease-in-out_infinite]" />
 
           <div className="absolute bottom-2 left-2 rounded-md bg-white/90 px-2 py-1 text-[9px] font-semibold text-forest shadow-sm">
             AI VISION SCAN
           </div>
+
         </div>
 
+
         {/* Progress bar */}
+
         <div className="mt-5">
+
           <div className="mb-2 flex items-center justify-between text-[10px]">
+
             <span className="font-semibold text-forest-muted">
               AI pipeline progress
             </span>
+
             <span className="font-bold text-green-soft">
               {activeStep + 1}/{ANALYSIS_STEPS.length}
             </span>
+
           </div>
 
           <div className="h-1.5 overflow-hidden rounded-full bg-beige">
+
             <div
               className="h-full rounded-full bg-green-soft transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
+              style={{
+                width: `${progress}%`,
+              }}
             />
+
           </div>
+
         </div>
+
 
         {/* Pipeline steps */}
+
         <div className="mt-5 space-y-2">
-          {ANALYSIS_STEPS.map((step, index) => {
-            const completed =
-              index < activeStep
-            const active =
-              index === activeStep
 
-            return (
-              <div
-                key={step}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-500 ${
-                  active
-                    ? 'bg-green-soft/10 text-forest shadow-sm'
-                    : completed
-                      ? 'bg-white/70 text-forest'
-                      : 'text-forest-muted/50'
-                }`}
-              >
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-500 ${
-                    completed
-                      ? 'bg-green-soft text-white'
-                      : active
-                        ? 'border-2 border-green-soft bg-white text-green-soft'
-                        : 'border border-forest-muted/20 bg-white/50'
+          {ANALYSIS_STEPS.map(
+            (step, index) => {
+
+              const completed =
+                index < activeStep
+
+              const active =
+                index === activeStep
+
+              return (
+
+                <div
+                  key={step}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-500 ${
+                    active
+                      ? 'bg-green-soft/10 text-forest shadow-sm'
+                      : completed
+                        ? 'bg-white/70 text-forest'
+                        : 'text-forest-muted/50'
                   }`}
                 >
-                  {completed ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : active ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <span className="h-1.5 w-1.5 rounded-full bg-forest-muted/30" />
-                  )}
-                </span>
 
-                <span
-                  className={`text-xs ${
-                    active || completed
-                      ? 'font-semibold'
-                      : 'font-medium'
-                  }`}
-                >
-                  {step}
-                </span>
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-500 ${
+                      completed
+                        ? 'bg-green-soft text-white'
+                        : active
+                          ? 'border-2 border-green-soft bg-white text-green-soft'
+                          : 'border border-forest-muted/20 bg-white/50'
+                    }`}
+                  >
 
-                {active && (
-                  <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-green-soft">
-                    processing
+                    {completed ? (
+
+                      <CheckCircle2 className="h-4 w-4" />
+
+                    ) : active ? (
+
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+
+                    ) : (
+
+                      <span className="h-1.5 w-1.5 rounded-full bg-forest-muted/30" />
+
+                    )}
+
                   </span>
-                )}
-              </div>
-            )
-          })}
+
+                  <span
+                    className={`text-xs ${
+                      active || completed
+                        ? 'font-semibold'
+                        : 'font-medium'
+                    }`}
+                  >
+                    {step}
+                  </span>
+
+                  {active && (
+
+                    <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-green-soft">
+                      processing
+                    </span>
+
+                  )}
+
+                </div>
+
+              )
+            },
+          )}
+
         </div>
+
 
         {/* Footer */}
+
         <div className="mt-4 flex items-center justify-center gap-2 text-[10px] text-forest-muted">
+
           <ShieldCheck className="h-3.5 w-3.5 text-green-soft" />
-          Quality • OOD • Grad-CAM • Few-Shot
+
+          Quality • OOD • Grad-CAM
+
         </div>
+
       </div>
+
     </div>
   )
 }
@@ -898,543 +951,5 @@ function FeatureMini({
       {icon}
       {label}
     </div>
-  )
-}
-
-
-/* =========================================================
-   FEW SHOT / NEW PEST LEARNING
-========================================================= */
-
-function FewShotPanel() {
-  const [className, setClassName] =
-    useState('')
-
-  const [files, setFiles] =
-    useState<File[]>([])
-
-  const [loading, setLoading] =
-    useState(false)
-
-  const [message, setMessage] =
-    useState('')
-
-  const [error, setError] =
-    useState('')
-
-  const [classes, setClasses] =
-    useState<string[]>([])
-
-  const [method, setMethod] =
-    useState<LearnMethod>(
-      'fine_tune',
-    )
-
-  const fileInputRef =
-    useRef<HTMLInputElement>(null)
-
-  async function loadClasses() {
-    try {
-      const loaded =
-        await getLearnedPestClasses()
-
-      setClasses(loaded)
-
-    } catch (err) {
-      console.error(
-        'Could not load learned classes:',
-        err,
-      )
-    }
-  }
-
-  useEffect(() => {
-    void loadClasses()
-  }, [])
-
-  function handleFiles(
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const selected =
-      Array.from(
-        event.target.files ?? [],
-      )
-
-    const invalid =
-      selected.filter(
-        (file) =>
-          !ACCEPTED_TYPES.includes(
-            file.type,
-          ),
-      )
-
-    if (invalid.length > 0) {
-
-      setError(
-        'Only JPG, PNG and WEBP images are allowed.',
-      )
-
-    } else if (selected.length < 5) {
-
-      setError(
-        'Select between 5 and 20 labelled images.',
-      )
-
-    } else if (selected.length > 20) {
-
-      setError(
-        'Maximum 20 labelled images are allowed.',
-      )
-
-    } else {
-
-      setError('')
-
-    }
-
-    setFiles(
-      selected.slice(0, 20),
-    )
-  }
-
-  async function handleTeach() {
-    setError('')
-    setMessage('')
-
-    const name =
-      className.trim()
-
-    if (!name) {
-
-      setError(
-        'Enter a name for the new pest.',
-      )
-
-      return
-    }
-
-    if (
-      files.length < 5 ||
-      files.length > 20
-    ) {
-
-      setError(
-        'Select between 5 and 20 labelled images.',
-      )
-
-      return
-    }
-
-    setLoading(true)
-
-    try {
-
-      const data =
-        await teachNewPest(
-          name,
-          files,
-          method,
-        )
-
-      setMessage(
-        data.message ||
-          'New pest learned successfully.',
-      )
-
-      setClassName('')
-      setFiles([])
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-
-      await loadClasses()
-
-    } catch (err) {
-
-      const messageText =
-        getErrorMessage(
-          err,
-          'Few-shot learning failed.',
-        )
-
-      setError(messageText)
-      toast.error(messageText)
-
-    } finally {
-
-      setLoading(false)
-
-    }
-  }
-
-  async function handleDelete(
-    name: string,
-  ) {
-    if (
-      !window.confirm(
-        `Delete learned class '${name}'?`,
-      )
-    ) {
-      return
-    }
-
-    try {
-
-      await deleteLearnedPest(name)
-      await loadClasses()
-
-      toast.success(
-        `Deleted ${name}.`,
-      )
-
-    } catch (err) {
-
-      const messageText =
-        getErrorMessage(
-          err,
-          'Could not delete learned class.',
-        )
-
-      setError(messageText)
-      toast.error(messageText)
-
-    }
-  }
-
-  return (
-    <Card className="mx-auto max-w-4xl">
-
-      {/* HEADER */}
-
-      <div className="flex items-start justify-between gap-4">
-
-        <div>
-
-          <h2 className="text-lg font-bold text-forest">
-            Few-Shot New Pest Learning
-          </h2>
-
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-forest-muted">
-            Adapt DenseNet121 to a new pest using only 5–20 labelled images.
-            The original model is never overwritten; selected layers are selectively fine-tuned.
-          </p>
-
-        </div>
-
-        <BrainCircuit className="h-6 w-6 shrink-0 text-green-soft" />
-
-      </div>
-
-
-      {/* RESEARCH IDEA */}
-
-      <div className="mt-5 rounded-xl border border-green-soft/20 bg-green-soft/5 p-4 text-xs leading-5 text-forest">
-
-        <span className="font-bold">
-          Research idea:
-        </span>{' '}
-
-        Unknown Pest → collect 5–20 labelled examples →
-        selectively fine-tune the final DenseNet121 layers →
-        test recognition of the new pest without retraining
-        the whole model from scratch.
-
-      </div>
-
-
-      {/* INPUTS */}
-
-      <div className="mt-5 grid gap-4 md:grid-cols-2">
-
-        <label className="block">
-
-          <span className="mb-2 block text-xs font-bold text-forest-muted">
-            New pest name
-          </span>
-
-          <input
-            value={className}
-            onChange={(event) =>
-              setClassName(
-                event.target.value,
-              )
-            }
-            placeholder="e.g. Rice Armyworm"
-            className="w-full rounded-xl border border-beige bg-white px-3 py-3 text-sm text-forest outline-none transition focus:border-green-soft"
-          />
-
-        </label>
-
-
-        <div>
-
-          <span className="mb-2 block text-xs font-bold text-forest-muted">
-            Labelled images (5–20)
-          </span>
-
-          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-forest-muted/40 bg-beige/20 px-3 py-3 text-xs text-forest">
-
-            <Upload className="h-4 w-4 text-amber" />
-
-            <span>
-              {files.length
-                ? `${files.length} files selected`
-                : 'Choose labelled images'}
-            </span>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleFiles}
-            />
-
-          </label>
-
-        </div>
-
-      </div>
-
-
-      {/* FILE LIST */}
-
-      {files.length > 0 && (
-
-        <div className="mt-4 grid gap-1 rounded-xl bg-beige/30 p-3 text-xs text-forest-muted sm:grid-cols-2">
-
-          {files.map(
-            (file, index) => (
-
-              <div
-                key={`${file.name}-${index}`}
-                className="truncate"
-              >
-                {index + 1}. {file.name}
-              </div>
-
-            ),
-          )}
-
-        </div>
-
-      )}
-
-
-      {/* METHODS */}
-
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-
-        <button
-          type="button"
-          onClick={() =>
-            setMethod('fine_tune')
-          }
-          className={`rounded-xl border p-4 text-left transition ${
-            method === 'fine_tune'
-              ? 'border-green-soft bg-green-soft/5'
-              : 'border-beige bg-white'
-          }`}
-        >
-
-          <div className="flex items-center gap-2 text-sm font-bold text-forest">
-
-            <BrainCircuit className="h-4 w-4 text-green-soft" />
-
-            Selective Fine-Tuning
-
-          </div>
-
-          <p className="mt-1 text-xs leading-5 text-forest-muted">
-            Recommended final method. Fine-tunes selected DenseNet121 layers instead of the entire network.
-          </p>
-
-        </button>
-
-
-        <button
-          type="button"
-          onClick={() =>
-            setMethod('prototype')
-          }
-          className={`rounded-xl border p-4 text-left transition ${
-            method === 'prototype'
-              ? 'border-green-soft bg-green-soft/5'
-              : 'border-beige bg-white'
-          }`}
-        >
-
-          <div className="text-sm font-bold text-forest">
-            Prototype Baseline
-          </div>
-
-          <p className="mt-1 text-xs leading-5 text-forest-muted">
-            Frozen DenseNet121 embeddings used as a research comparison baseline.
-          </p>
-
-        </button>
-
-      </div>
-
-
-      {/* TEACH BUTTON */}
-
-      <Button
-        size="lg"
-        className="mt-5"
-        onClick={handleTeach}
-        loading={loading}
-        disabled={
-          loading ||
-          !className.trim() ||
-          files.length < 5 ||
-          files.length > 20
-        }
-      >
-
-        {loading
-          ? method === 'fine_tune'
-            ? 'Fine-tuning…'
-            : 'Learning…'
-          : method === 'fine_tune'
-            ? 'Adapt New Pest'
-            : 'Create Prototype'}
-
-      </Button>
-
-
-      {/* SUCCESS */}
-
-      {message && (
-
-        <div className="mt-3 rounded-xl border border-green-soft/20 bg-green-soft/5 px-4 py-3 text-xs text-green-soft">
-          ✓ {message}
-        </div>
-
-      )}
-
-
-      {/* ERROR */}
-
-      {error && (
-
-        <div className="mt-3 rounded-xl border border-red-soft/20 bg-red-soft/5 px-4 py-3 text-xs text-red-soft">
-          {error}
-        </div>
-
-      )}
-
-
-      {/* LEARNED CLASSES */}
-
-      <div className="mt-6 border-t border-beige pt-5">
-
-        <div className="mb-3 flex items-center justify-between">
-
-          <h3 className="text-sm font-bold text-forest">
-            Learned pest classes
-          </h3>
-
-          <span className="text-xs text-forest-muted">
-            {classes.length} learned
-          </span>
-
-        </div>
-
-
-        {classes.length === 0 ? (
-
-          <EmptyState
-            title="No new pest classes learned yet"
-            description="Teach a new pest using 5–20 labelled images."
-          />
-
-        ) : (
-
-          <div className="flex flex-wrap gap-2">
-
-            {classes.map((name) => (
-
-              <div
-                key={name}
-                className="flex items-center gap-2 rounded-full border border-beige bg-beige/40 px-3 py-2 text-xs font-semibold text-forest"
-              >
-
-                <span>
-                  {name}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    void handleDelete(
-                      name,
-                    )
-                  }
-                  className="text-red-soft hover:opacity-70"
-                  title={`Delete ${name}`}
-                  aria-label={`Delete ${name}`}
-                >
-
-                  <Trash2 className="h-3.5 w-3.5" />
-
-                </button>
-
-              </div>
-
-            ))}
-
-          </div>
-
-        )}
-
-      </div>
-
-
-      {/* HOW IT WORKS */}
-
-      <div className="mt-6 border-t border-beige pt-5">
-
-        <h3 className="text-sm font-bold text-forest">
-          How this works
-        </h3>
-
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-xs leading-5 text-forest-muted">
-
-          <li>
-            Upload 5–20 images belonging to the same new pest.
-          </li>
-
-          <li>
-            Give the new pest a class name.
-          </li>
-
-          <li>
-            DenseNet121 keeps the original knowledge in the frozen layers.
-          </li>
-
-          <li>
-            Selected deeper layers and the classifier are fine-tuned.
-          </li>
-
-          <li>
-            The original base checkpoint is never overwritten.
-          </li>
-
-          <li>
-            The adapted checkpoint is saved separately.
-          </li>
-
-          <li>
-            The new pest can then be tested using the adapted model.
-          </li>
-
-        </ol>
-
-      </div>
-
-    </Card>
   )
 }
