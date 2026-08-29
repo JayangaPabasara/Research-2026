@@ -1,38 +1,118 @@
 """
-Text-to-Speech Module: Converts English/Sinhala text to audio.
-Uses Google Cloud TTS or Coqui TTS fallback.
+Text-to-Speech Module — Novelty 4
+Converts diagnosis result to natural Sinhala speech using gTTS.
+Returns base64-encoded MP3 for direct playback in frontend <audio> element.
+
+Research contribution: Completes the bidirectional voice accessibility loop.
+Farmers with low literacy receive results as spoken Sinhala — not just text.
+This addresses the TTS gap identified in all reviewed systems.
 """
-import os
+import io, os, base64, logging
+from gtts import gTTS
 
-TTS_ENGINE = os.getenv("TTS_ENGINE", "coqui")
+logger = logging.getLogger("voice_nlp.tts")
 
-def text_to_speech(text: str, language: str = "si") -> bytes:
-    """Convert text to speech audio bytes."""
-    if TTS_ENGINE == "google":
-        return _google_tts(text, language)
-    return _stub_tts(text)
+# ── Disease names in natural Sinhala speech ───────────────────────────────────
+DISEASE_SINHALA_SPEECH = {
+    "Bacterial Blight" : "බැක්ටීරියා අංගමාරය",
+    "Leaf Blast"        : "කොල පාළු රෝගය",
+    "Brown Spot"        : "දුඹුරු පුල්ලි රෝගය",
+    "Healthy"           : "ඔබේ ගොයම් ගස සෞඛ්‍යමත්ය",
+    "Unknown / OOD"     : "රෝගය හඳුනා ගත නොහැකිය",
+}
 
-def _google_tts(text: str, language: str) -> bytes:
+# ── Severity labels in Sinhala ───────────────────────────────────────────────
+SEVERITY_SINHALA = {
+    "severe"  : "දරුණු",
+    "moderate": "මධ්‍යම",
+    "mild"    : "මෘදු",
+}
+
+
+def synthesise_result(
+    disease       : str,
+    confidence    : float,
+    needs_followup: bool,
+    is_ood        : bool = False,
+    severity      : dict | None = None,
+) -> str:
+    """
+    Convert diagnosis result to Sinhala speech.
+    Returns base64-encoded MP3 string.
+    Empty string returned on failure — never raises.
+
+    Novelty 4: First working TTS in this pipeline.
+    Enables low-literacy farmers to receive results by ear.
+    """
     try:
-        from google.cloud import texttospeech
-        client   = texttospeech.TextToSpeechClient()
-        synthesis_input = texttospeech.SynthesisInput(text=text)
-        voice    = texttospeech.VoiceSelectionParams(
-            language_code="si-LK" if language == "si" else "en-US",
-            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
-        )
-        config   = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.OGG_OPUS
-        )
-        response = client.synthesize_speech(
-            input=synthesis_input, voice=voice, audio_config=config
-        )
-        return response.audio_content
-    except Exception as e:
-        print(f"[tts] Google TTS error: {e}")
-        return b""
+        text = _build_speech_text(disease, confidence, needs_followup, is_ood, severity)
+        logger.info("TTS synthesising: %s", text[:80])
 
-def _stub_tts(text: str) -> bytes:
-    """Stub — returns empty bytes until TTS is configured."""
-    print(f"[tts] TTS stub called with: {text[:50]}")
-    return b""
+        tts = gTTS(text=text, lang="si", slow=False)
+        buf = io.BytesIO()
+        tts.write_to_fp(buf)
+        buf.seek(0)
+        audio_b64 = base64.b64encode(buf.read()).decode("utf-8")
+        logger.info("TTS generated %d chars → %d bytes audio", len(text), len(audio_b64))
+        return audio_b64
+
+    except Exception as e:
+        logger.error("TTS failed (non-fatal): %s", e)
+        return ""
+
+
+def synthesise_question(sinhala_question: str) -> str:
+    """
+    Convert a follow-up question to Sinhala speech.
+    Returns base64-encoded MP3. Empty string on failure.
+    """
+    try:
+        tts = gTTS(text=sinhala_question, lang="si", slow=False)
+        buf = io.BytesIO()
+        tts.write_to_fp(buf)
+        buf.seek(0)
+        return base64.b64encode(buf.read()).decode("utf-8")
+    except Exception as e:
+        logger.error("TTS question failed (non-fatal): %s", e)
+        return ""
+
+
+def _build_speech_text(
+    disease       : str,
+    confidence    : float,
+    needs_followup: bool,
+    is_ood        : bool,
+    severity      : dict | None,
+) -> str:
+    """Build natural Sinhala speech text for the diagnosis result."""
+
+    if is_ood:
+        return (
+            "ඔබේ ගොයම් රෝගය හඳුනා ගත නොහැකිය. "
+            "කරුණාකර ගොයම් ලක්ෂණ ගැන වැඩිදුර විස්තර කරන්න."
+        )
+
+    disease_si = DISEASE_SINHALA_SPEECH.get(disease, disease)
+
+    if disease == "Healthy":
+        return (
+            f"ඔබේ ගොයම් ගස සෞඛ්‍යමත් ය. "
+            f"ගොයම් ගස නිතර නිරීක්ෂණය කරන්න."
+        )
+
+    if needs_followup:
+        return (
+            f"ආරම්භක රෝග නිර්ණය {disease_si}. "
+            f"නිශ්චිත රෝගය තීරණය කිරීමට තවත් ප්‍රශ්නයකට පිළිතුරු දෙන්න."
+        )
+
+    severity_text = ""
+    if severity and severity.get("level") != "mild":
+        sev_si = SEVERITY_SINHALA.get(severity.get("level", ""), "")
+        if sev_si:
+            severity_text = f" රෝගය {sev_si} මට්ටමේ ඇත."
+
+    return (
+        f"ඔබේ ගොයම් ගසට {disease_si} ඇත.{severity_text} "
+        f"ප්‍රතිකාර සඳහා නිර්දේශ කොටස බලන්න."
+    )

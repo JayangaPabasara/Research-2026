@@ -2,6 +2,10 @@
 Redis session store for follow-up dialogue state.
 Uses Upstash Redis (TLS) via REDIS_URL environment variable.
 Sessions expire automatically after 30 minutes.
+
+Novelty 3: Confidence trajectory tracking added.
+Each session now records how confidence changes across follow-up questions,
+creating a diagnostic path showing the system converging on a diagnosis.
 """
 
 import redis, json, os, logging
@@ -16,17 +20,15 @@ def _get_redis() -> redis.Redis:
     global _redis_client
     if _redis_client is None:
         url = os.getenv("REDIS_URL", "redis://localhost:6379")
-        # Upstash uses rediss:// (TLS) — from_url handles this automatically
         _redis_client = redis.Redis.from_url(
             url,
-            decode_responses = True,
-            socket_timeout   = 5,
+            decode_responses       = True,
+            socket_timeout         = 5,
             socket_connect_timeout = 5,
         )
-        # Test connection
         try:
             _redis_client.ping()
-            logger.info("[session_store] Upstash Redis connected OK")
+            logger.info("[session_store] Redis connected OK")
         except Exception as e:
             logger.error("[session_store] Redis connection failed: %s", e)
     return _redis_client
@@ -37,17 +39,31 @@ def _key(session_id: str) -> str:
 
 
 def create_session(disease: str, confidence: float) -> str:
-    """Create a new follow-up session. Returns session_id."""
+    """
+    Create a new follow-up session. Returns session_id.
+    Initialises confidence_trajectory with the initial classification result.
+    """
     session_id = str(uuid4())
     data = {
         "disease"       : disease,
         "confidence"    : confidence,
         "question_index": 0,
         "answers"       : [],
+        "question_dict" : {},
+        # Novelty 3: confidence trajectory — records each step
+        "confidence_trajectory": [
+            {
+                "step"      : 0,
+                "label"     : "Initial",
+                "disease"   : disease,
+                "confidence": round(confidence, 3),
+            }
+        ],
     }
     try:
         _get_redis().setex(_key(session_id), SESSION_TTL, json.dumps(data))
-        logger.info("[session_store] Created session %s for disease=%s", session_id, disease)
+        logger.info("[session_store] Created session %s disease=%s conf=%.3f",
+                    session_id, disease, confidence)
     except Exception as e:
         logger.error("[session_store] create_session failed: %s", e)
     return session_id
@@ -72,6 +88,27 @@ def update_session(session_id: str, data: dict) -> None:
         _get_redis().setex(_key(session_id), SESSION_TTL, json.dumps(data))
     except Exception as e:
         logger.error("[session_store] update_session failed: %s", e)
+
+
+def append_trajectory(session_id: str, step: int, label: str,
+                      disease: str, confidence: float) -> list:
+    """
+    Append a new step to the confidence trajectory.
+    Returns the updated trajectory list.
+    """
+    session = get_session(session_id)
+    if session is None:
+        return []
+    trajectory = session.get("confidence_trajectory", [])
+    trajectory.append({
+        "step"      : step,
+        "label"     : label,
+        "disease"   : disease,
+        "confidence": round(confidence, 3),
+    })
+    session["confidence_trajectory"] = trajectory
+    update_session(session_id, session)
+    return trajectory
 
 
 def delete_session(session_id: str) -> None:

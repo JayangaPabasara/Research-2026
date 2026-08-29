@@ -1,0 +1,4 @@
+services:
+  voice_nlp:
+    volumes:
+      - ./voice_nlp:/app
