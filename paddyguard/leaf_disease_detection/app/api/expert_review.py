@@ -94,7 +94,8 @@ def verify_review_case(case_id):
 
         data = request.get_json() or {}
         expert_label = data.get("expert_label")
-        if expert_label not in ["Bacterial_Blight", "Brown_Spot", "Healthy", "Leaf_Blast"]:
+        valid_labels = ["Bacterial_Blight", "Brown_Spot", "Healthy", "Leaf_Blast", "OOD", "Unknown"]
+        if expert_label not in valid_labels:
             return jsonify({"detail": "Invalid expert label"}), 400
 
         needs_expert = row.needs_expert_review or False
@@ -107,6 +108,7 @@ def verify_review_case(case_id):
                 review_reason = "TOP_K_UNCERTAINTY"
 
         verified_at = datetime.utcnow()
+        is_trainable = expert_label not in ["OOD", "Unknown"]
         updates = {
             "needs_expert_review": needs_expert,
             "review_reason": review_reason,
@@ -114,8 +116,9 @@ def verify_review_case(case_id):
             "expert_validated_disease": expert_label,
             "verified_at": verified_at,
             "expert_reviewed_at": verified_at,
-            "approved_for_training": True,
-            "consumed_by_job_id": None
+            "approved_for_training": is_trainable,
+            "consumed_by_job_id": None,
+            "status": "OOD" if expert_label in ["OOD", "Unknown"] else (row.status or "KNOWN")
         }
         g.prediction_repo.update(case_id, updates)
         return jsonify({"message": "Case verified", "case_id": case_id})

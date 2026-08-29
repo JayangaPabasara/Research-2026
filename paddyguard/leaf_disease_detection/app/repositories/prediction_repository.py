@@ -27,12 +27,29 @@ class PredictionRepository:
         return str(record.get("review_status") or "").lower() == "verified"
 
     @staticmethod
+    def is_ood_label(value):
+        if value is None:
+            return False
+        return str(value).strip().upper() in {"OOD", "UNKNOWN", "OUT_OF_DISTRIBUTION"}
+
+    @staticmethod
     def is_approved_for_training(record):
         if not record:
             return False
         if not PredictionRepository.is_verified_record(record):
             return False
-        return PredictionRepository._as_bool(record.get("approved_for_training")) is True
+        if str(record.get("status") or "").strip().upper() == "OOD":
+            return False
+        expert_label = record.get("expert_validated_disease")
+        if PredictionRepository.is_ood_label(expert_label):
+            return False
+        if expert_label is None or str(expert_label).strip() == "":
+            return False
+
+        approved = record.get("approved_for_training")
+        if approved is None:
+            return True
+        return PredictionRepository._as_bool(approved) is True
 
     @staticmethod
     def is_unused_approved_training_sample(record):
@@ -86,6 +103,7 @@ class PredictionRepository:
     def find_verified_unused_samples(self, exclude_case_ids=None):
         query = {
             "status": {"$ne": "OOD"},
+            "expert_validated_disease": {"$nin": ["", None, "OOD", "Unknown", "UNKNOWN"]},
             "review_status": "verified",
             "approved_for_training": True,
             "$or": [
@@ -102,6 +120,7 @@ class PredictionRepository:
     def find_eligible_fine_tune_samples(self):
         cursor = self.collection.find({
             "status": {"$ne": "OOD"},
+            "expert_validated_disease": {"$nin": ["", None, "OOD", "Unknown", "UNKNOWN"]},
             "review_status": "verified",
             "approved_for_training": True,
             "$or": [
@@ -132,6 +151,8 @@ class PredictionRepository:
 
     def count_approved_for_training_samples(self):
         return self.collection.count_documents({
+            "status": {"$ne": "OOD"},
+            "expert_validated_disease": {"$nin": ["", None, "OOD", "Unknown", "UNKNOWN"]},
             "review_status": "verified",
             "approved_for_training": True
         })
@@ -139,6 +160,7 @@ class PredictionRepository:
     def count_active_learning_eligible(self):
         return self.collection.count_documents({
             "status": {"$ne": "OOD"},
+            "expert_validated_disease": {"$nin": ["", None, "OOD", "Unknown", "UNKNOWN"]},
             "review_status": "verified",
             "approved_for_training": True,
             "$or": [
@@ -156,6 +178,7 @@ class PredictionRepository:
     def count_eligible_fine_tune_samples(self):
         return self.collection.count_documents({
             "status": {"$ne": "OOD"},
+            "expert_validated_disease": {"$nin": ["", None, "OOD", "Unknown", "UNKNOWN"]},
             "review_status": "verified",
             "approved_for_training": True,
             "$or": [

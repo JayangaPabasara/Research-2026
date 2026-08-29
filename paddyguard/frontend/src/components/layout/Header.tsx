@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Menu, Bell, ChevronDown, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { clearLeafAuth, getLeafAuth } from '@/lib/leafApi'
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  WEATHER_NOTIFICATION_EVENT,
+  type StoredNotification,
+} from '@/lib/weatherNotification'
 
 const TITLES: Record<string, string> = {
   '/': 'මුල් පිටුව | Home',
@@ -18,6 +24,8 @@ const TITLES: Record<string, string> = {
 
 export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState<StoredNotification[]>([])
   const location = useLocation()
   const navigate = useNavigate()
   const farmerUser = useAuthStore((s) => s.user)
@@ -27,11 +35,35 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const displayEmail = farmerUser?.email || leafAuth?.username || ''
   const displayRole = leafAuth?.role || (farmerUser ? 'FARMER' : '')
   const title = TITLES[location.pathname] || 'PaddyGuard AI'
+  const unreadCount = notifications.filter((n) => !n.read).length
+
+  useEffect(() => {
+    const refresh = () => setNotifications(getNotifications())
+    refresh()
+    window.addEventListener(WEATHER_NOTIFICATION_EVENT, refresh)
+    return () => window.removeEventListener(WEATHER_NOTIFICATION_EVENT, refresh)
+  }, [])
 
   function handleLogout() {
     clearLeafAuth()
     farmerLogout()
     navigate('/login')
+  }
+
+  function handleBellClick() {
+    setNotifOpen((o) => !o)
+    setDropdownOpen(false)
+    if (!notifOpen) markAllNotificationsRead()
+  }
+
+  function formatTimeAgo(timestamp: number): string {
+    const diffMs = Date.now() - timestamp
+    const minutes = Math.floor(diffMs / 60000)
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes}m ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}h ago`
+    return `${Math.floor(hours / 24)}d ago`
   }
 
   return (
@@ -44,13 +76,51 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
       </div>
 
       <div className="flex items-center gap-2">
-        <button className="rounded-full p-2 text-forest-muted hover:bg-beige">
-          <Bell className="h-5 w-5" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={handleBellClick}
+            className="relative rounded-full p-2 text-forest-muted hover:bg-beige"
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-soft text-[10px] font-bold text-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {notifOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setNotifOpen(false)} />
+              <div className="absolute right-0 top-full z-20 mt-2 w-80 max-w-[90vw] rounded-xl bg-white p-2 shadow-lg">
+                <div className="border-b border-beige px-3 py-2">
+                  <p className="text-sm font-semibold text-forest">Notifications</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="px-3 py-4 text-center text-sm text-forest-muted">
+                      No notifications yet
+                    </p>
+                  ) : (
+                    notifications.map((n) => (
+                      <div key={n.id} className="border-b border-beige px-3 py-2 last:border-b-0">
+                        <p className="whitespace-pre-line text-sm text-forest">{n.body}</p>
+                        <p className="mt-1 text-xs text-forest-muted">{formatTimeAgo(n.timestamp)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="relative">
           <button
-            onClick={() => setDropdownOpen((o) => !o)}
+            onClick={() => {
+              setDropdownOpen((o) => !o)
+              setNotifOpen(false)
+            }}
             className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-beige"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber text-sm font-bold text-white">

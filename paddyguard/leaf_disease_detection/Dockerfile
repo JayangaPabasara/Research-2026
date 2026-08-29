@@ -9,5 +9,5 @@ COPY app ./app
 COPY training ./training
 COPY models ./models
 COPY data ./data
-EXPOSE 8000
-CMD ["sh", "-c", "gunicorn -w 1 -b 0.0.0.0:${PORT:-8000} app.main:app --timeout 300"]
+EXPOSE 8002
+CMD ["sh", "-c", "gunicorn -w 1 -b 0.0.0.0:${PORT:-8002} app.main:app --timeout 300"]

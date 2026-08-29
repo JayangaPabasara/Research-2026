@@ -11,7 +11,7 @@ services:
     build: ./gateway
     ports:
       - "8000:8000"
-    env_file: ./gateway/.env
+    env_file: ./gateway/env
     environment:
       - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173
     depends_on:
@@ -25,7 +25,7 @@ services:
     build: ./voice_nlp
     ports:
       - "8001:8001"
-    env_file: ./voice_nlp/.env
+    env_file: ./voice_nlp/env
     volumes:
       - ./voice_nlp/models:/app/models
     deploy:
@@ -48,7 +48,7 @@ services:
     build: ./pest_detection
     ports:
       - "8003:8003"
-    env_file: ./pest_detection/.env
+    env_file: ./pest_detection/env
     volumes:
       - ./pest_detection/models:/app/models
 
@@ -56,13 +56,12 @@ services:
     build: ./treatment_advisory_chatbot
     ports:
       - "8004:8004"
-    env_file: ./treatment_advisory_chatbot/.env
 
   user_management:
     build: ./user_management
     ports:
       - "8005:8005"
-    env_file: ./user_management/.env
+    env_file: ./user_management/env
     depends_on:
       postgres:
         condition: service_healthy

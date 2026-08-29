@@ -18,9 +18,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'මුල් පිටුව | Home', icon: Home, allow: ['FARMER'] },
   { to: '/voice', label: 'හඬ විනිශ්චය | Voice', icon: Mic, allow: ['FARMER'] },
-  { to: '/leaf', label: 'කොළ රෝග | Leaf', icon: Leaf, allow: ['FARMER'] },
+  { to: '/leaf', label: 'Analyze Leaf', icon: Leaf, allow: ['FARMER', 'EXPERT', 'SUPER_ADMIN'] },
   { to: '/pest', label: 'කෘමි | Pest', icon: Bug, allow: ['FARMER'] },
-  { to: '/history', label: 'ඉතිහාසය | History', icon: Clock, allow: ['FARMER', 'EXPERT', 'SUPER_ADMIN'] },
+  { to: '/history', label: 'History', icon: Clock, allow: ['FARMER', 'EXPERT', 'SUPER_ADMIN'] },
   { to: '/expert-review', label: 'Expert Review', icon: CheckSquare, allow: ['EXPERT', 'SUPER_ADMIN'] },
   { to: '/dashboard', label: 'Dashboard', icon: BarChart2, allow: ['SUPER_ADMIN'] },
   { to: '/expert-management', label: 'Experts', icon: Users, allow: ['SUPER_ADMIN'] },

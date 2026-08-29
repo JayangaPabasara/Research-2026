@@ -48,8 +48,8 @@ export default function StaffLogin() {
 
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <Input label="Username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <Input label="Username" value={username} onChange={(e) => setUsername(e.target.value)} required autoComplete="username" />
+          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
 
           {error && <p className="rounded-xl bg-red-soft/10 px-4 py-2 text-sm text-red-soft">{error}</p>}
 

@@ -132,6 +132,31 @@ def start_batch_retraining(batch_id):
         return jsonify({"detail": str(exc)}), 500
 
 
+@active_learning_bp.route("/api/expert/active-learning/batches/<batch_id>", methods=["DELETE"])
+@token_required(required_role="SUPER_ADMIN")
+def delete_batch(batch_id):
+    try:
+        batch = g.active_learning_repo.find_batch_by_id(batch_id)
+        if not batch:
+            return jsonify({"detail": "Batch not found"}), 404
+
+        if batch.status in ["TRAINING", "TRAINING_SIMULATION"]:
+            return jsonify({"detail": "Cannot delete this batch because it is being used by a training job."}), 409
+
+        if hasattr(g, 'training_repo'):
+            related_jobs = g.training_repo.list_all()
+            for job in related_jobs:
+                if getattr(job, 'batch_id', None) == batch_id or getattr(job, 'source_batch_id', None) == batch_id:
+                    return jsonify({"detail": "Cannot delete this batch because it is referenced by an active job."}), 409
+
+        g.active_learning_repo.sample_collection.delete_many({"batch_id": batch_id})
+        g.active_learning_repo.batch_collection.delete_one({"batch_id": batch_id})
+        return jsonify({"message": "Batch deleted successfully."})
+    except Exception as exc:
+        logger.error(f"Error deleting batch {batch_id}: {exc}", exc_info=True)
+        return jsonify({"detail": str(exc)}), 500
+
+
 @active_learning_bp.route("/api/expert/active-learning/batches/<batch_id>/export", methods=["GET"])
 @token_required(required_role="SUPER_ADMIN")
 def export_batch(batch_id):
