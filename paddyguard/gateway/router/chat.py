@@ -15,3 +15,25 @@ async def send_message(payload: dict):
             return JSONResponse(status_code=response.status_code, content=response.json())
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="Treatment chatbot service unavailable")
+
+
+@router.get("/topics")
+async def list_topics():
+    """Forward to C4's GET /chat/topics — the scoped disease/pest list the frontend renders as suggestion chips."""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(f"{TREATMENT_CHATBOT_URL}/chat/topics")
+            return JSONResponse(status_code=response.status_code, content=response.json())
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Treatment chatbot service unavailable")
+
+
+@router.delete("/session/{session_id}")
+async def clear_session(session_id: str):
+    """Forward to C4's DELETE /chat/session/:sessionId — used when the user starts a new chat."""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.delete(f"{TREATMENT_CHATBOT_URL}/chat/session/{session_id}")
+            return JSONResponse(status_code=response.status_code, content=response.json())
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Treatment chatbot service unavailable")

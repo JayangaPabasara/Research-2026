@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { ImagePlus, X, MapPin, Globe } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ImagePlus, X, MapPin, Globe, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Scoped UI Primitives
@@ -73,9 +74,17 @@ export default function LeafDisease() {
   const [selectedCase, setSelectedCase] = useState<CaseSummary | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const logout = useAuthStore((s) => s.logout)
   const leafAuth = getLeafAuth()
   const isStaff = leafAuth?.role === 'EXPERT' || leafAuth?.role === 'SUPER_ADMIN'
+  const [sessionExpired, setSessionExpired] = useState(false)
+
+  function handleReLogin() {
+    logout()
+    navigate('/login')
+  }
 
   const clearLeafAnalysisState = () => {
     if (preview?.startsWith('blob:')) {
@@ -183,11 +192,16 @@ export default function LeafDisease() {
 
   async function loadHistory() {
     setLoadingHistory(true)
+    setSessionExpired(false)
     try {
       const data = isStaff ? await getCases(leafAuth?.username) : await getUserHistory()
       setCases(Array.isArray(data) ? data : [])
-    } catch {
-      toast.error('Failed to load history')
+    } catch (err: unknown) {
+      if ((err as { response?: { status?: number } }).response?.status === 401) {
+        setSessionExpired(true)
+      } else {
+        toast.error('Failed to load history')
+      }
     } finally {
       setLoadingHistory(false)
     }
@@ -686,18 +700,35 @@ export default function LeafDisease() {
 
       {tab === 'history' && (
         <div className="space-y-6">
-          <UserAnalyticsOverview />
-          
-          <div className="card">
-            <h2 className="text-lg font-bold text-forest mb-4" style={{ margin: '0 0 1rem 0' }}>{t.historyTitle}</h2>
-            {loadingHistory ? (
-              <LoadingSpinner labelEn={t.loadingHistory} />
-            ) : (
-              <HistoryTable cases={cases} onRowClick={setSelectedCase} onDelete={handleDelete} />
-            )}
-          </div>
-          
-          <ActivityModal caseData={selectedCase} onClose={() => setSelectedCase(null)} />
+          {sessionExpired ? (
+            <div className="card flex flex-col items-center gap-3 py-8 text-center">
+              <AlertTriangle className="h-8 w-8 text-amber-dark" />
+              <div>
+                <p className="font-bold text-forest">Your session has expired</p>
+                <p className="mt-1 text-sm text-forest-muted">
+                  Please log out and log back in to continue viewing your history.
+                </p>
+              </div>
+              <Button variant="primary" onClick={handleReLogin}>
+                Log out &amp; sign in again
+              </Button>
+            </div>
+          ) : (
+            <>
+              <UserAnalyticsOverview />
+
+              <div className="card">
+                <h2 className="text-lg font-bold text-forest mb-4" style={{ margin: '0 0 1rem 0' }}>{t.historyTitle}</h2>
+                {loadingHistory ? (
+                  <LoadingSpinner labelEn={t.loadingHistory} />
+                ) : (
+                  <HistoryTable cases={cases} onRowClick={setSelectedCase} onDelete={handleDelete} />
+                )}
+              </div>
+
+              <ActivityModal caseData={selectedCase} onClose={() => setSelectedCase(null)} />
+            </>
+          )}
         </div>
       )}
     </div>

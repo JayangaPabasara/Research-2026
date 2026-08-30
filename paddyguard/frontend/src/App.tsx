@@ -12,6 +12,7 @@ import Home from '@/pages/Home'
 import VoiceDiagnosis from '@/pages/VoiceDiagnosis'
 import LeafDisease from '@/pages/LeafDisease'
 import PestDetection from '@/pages/PestDetection'
+import TreatmentChat from '@/pages/TreatmentChat'
 import History from '@/pages/History'
 import ExpertReview from '@/pages/ExpertReview'
 
@@ -110,6 +111,15 @@ export default function App() {
         element={
           <Protected allow={['FARMER']}>
             <PestDetection />
+          </Protected>
+        }
+      />
+
+      <Route
+        path="/chat"
+        element={
+          <Protected allow={['FARMER']}>
+            <TreatmentChat />
           </Protected>
         }
       />

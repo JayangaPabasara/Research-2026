@@ -28,6 +28,7 @@ services:
     env_file: ./voice_nlp/.env
     volumes:
       - ./voice_nlp/models:/app/models
+      - voice_nlp_hf_cache:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -56,6 +57,7 @@ services:
     build: ./treatment_advisory_chatbot
     ports:
       - "8004:8004"
+    env_file: ./treatment_advisory_chatbot/.env
 
   user_management:
     build: ./user_management
@@ -93,3 +95,4 @@ services:
 volumes:
   postgres_data:
   mongo_data:
+  voice_nlp_hf_cache:

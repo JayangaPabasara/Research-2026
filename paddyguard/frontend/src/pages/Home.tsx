@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Mic, Leaf, Bug } from 'lucide-react'
+import { Mic, Leaf, Bug, MessageCircle } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import { useAuthStore } from '@/store/authStore'
 import { useDiagnosisStore } from '@/store/diagnosisStore'
@@ -30,6 +30,14 @@ const MODULES = [
     hint: 'Upload pest photo',
     iconBg: 'bg-amber-dark',
     to: '/pest',
+  },
+  {
+    key: 'chat',
+    icon: MessageCircle,
+    label: 'ප්‍රතිකාර උපදේශක',
+    hint: 'Treatment advisory',
+    iconBg: 'bg-forest',
+    to: '/chat',
   },
 ]
 

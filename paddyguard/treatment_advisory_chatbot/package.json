@@ -1,7 +1,7 @@
 {
   "name": "treatment-advisory-chatbot",
-  "version": "1.0.0",
-  "description": "PaddyGuard AI — C4 Treatment Advisory RAG Chatbot",
+  "version": "2.0.0",
+  "description": "PaddyGuard AI — C4 Treatment Advisory RAG Chatbot (Pinecone + OpenRouter)",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -10,16 +10,16 @@
     "test": "jest"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "@pinecone-database/pinecone": "^3.0.3",
+    "@xenova/transformers": "^2.17.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "mongoose": "^8.4.1",
-    "openai": "^4.47.1",
-    "uuid": "^9.0.1"
+    "express": "^4.19.2",
+    "openai": "^4.47.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0",
     "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
     "supertest": "^7.0.0"
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Play, Pause } from 'lucide-react'
+import { CheckCircle2, Play, Pause, MessageCircle } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -15,6 +16,7 @@ interface DiagnosisResultProps {
 }
 
 export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisResultProps) {
+  const navigate = useNavigate()
   const color = diseaseColor(result.disease)
   const speech = useSpeechAudio(result.tts_audio_b64)
 
@@ -121,7 +123,18 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
         <Button variant="outline" className="flex-1" onClick={onNewDiagnosis}>
           නැවත | New Diagnosis
         </Button>
-        <Button variant="primary" className="flex-1" disabled>
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={() =>
+            navigate('/chat', {
+              state: {
+                initialMessage: `Tell me about treatment for ${result.disease}`,
+              },
+            })
+          }
+        >
+          <MessageCircle className="h-4 w-4" />
           ප්‍රතිකාර | Treatment
         </Button>
       </div>

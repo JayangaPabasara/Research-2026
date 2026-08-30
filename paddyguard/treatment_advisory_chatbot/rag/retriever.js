@@ -1,32 +1,41 @@
 /**
- * Retrieval module — keyword-overlap retrieval over the static
- * treatment knowledge base (data/treatment_knowledge_base.json).
+ * Retrieval module — semantic search over the Pinecone index that the
+ * ingestion notebook populated from the rice disease/pest PDF knowledge
+ * base. Mirrors the notebook's `retrieve_context(query, top_k)`.
  */
-const knowledgeBase = require("../data/treatment_knowledge_base.json");
+const { Pinecone } = require("@pinecone-database/pinecone");
+const config = require("../config");
+const { embedQuery } = require("./embedder");
 
-function scoreEntry(query, entry) {
-  const text = query.toLowerCase();
-  let score = 0;
-  for (const keyword of entry.keywords) {
-    if (text.includes(keyword.toLowerCase())) score += 1;
-  }
-  return score;
-}
+let pineconeIndex = null;
 
-/** Retrieve the best-matching knowledge base entry for a query, or null. */
-function retrieve(query) {
-  let best = null;
-  let bestScore = 0;
-
-  for (const entry of knowledgeBase) {
-    const score = scoreEntry(query, entry);
-    if (score > bestScore) {
-      bestScore = score;
-      best = entry;
+function getIndex() {
+  if (!pineconeIndex) {
+    if (!config.pineconeApiKey) {
+      throw new Error("PINECONE_API_KEY is not configured");
     }
+    const pc = new Pinecone({ apiKey: config.pineconeApiKey });
+    pineconeIndex = config.pineconeHost
+      ? pc.index(config.pineconeIndexName, config.pineconeHost)
+      : pc.index(config.pineconeIndexName);
   }
-
-  return bestScore > 0 ? best : null;
+  return pineconeIndex;
 }
 
-module.exports = { retrieve };
+/**
+ * Retrieve the top-k most relevant knowledge base chunks for `query`.
+ * Returns [{ text, source, score }, ...].
+ */
+async function retrieveContext(query, topK = config.retrievalTopK) {
+  const vector = await embedQuery(query);
+  const index = getIndex();
+  const result = await index.query({ vector, topK, includeMetadata: true });
+
+  return (result.matches || []).map((match) => ({
+    text: match.metadata?.text || "",
+    source: match.metadata?.source || "",
+    score: match.score,
+  }));
+}
+
+module.exports = { retrieveContext };
