@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts'
-import { UploadCloud } from 'lucide-react'
+import { UploadCloud, ChevronDown } from 'lucide-react'
 
 // UI Primitives
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -44,6 +44,10 @@ export default function AdminDashboard() {
   const [batchToDelete, setBatchToDelete] = useState<Batch | null>(null)
   const [candidateDeleteLoading, setCandidateDeleteLoading] = useState(false)
   const [batchDeleteLoading, setBatchDeleteLoading] = useState(false)
+  const [workflowTab, setWorkflowTab] = useState<'offline' | 'inapp'>('inapp')
+  const [governanceExpanded, setGovernanceExpanded] = useState(false)
+  const governanceRef = useRef<HTMLElement>(null)
+  const [researchExpanded, setResearchExpanded] = useState(false)
 
   // Candidate evaluation states
   const [candidates, setCandidates] = useState<CandidateModel[]>([])
@@ -162,6 +166,8 @@ export default function AdminDashboard() {
   const openCandidateComparison = (candidate: CandidateModel) => {
     setCompareCandidate(candidate)
     setSelectedCandidate(candidate)
+    setGovernanceExpanded(true)
+    governanceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   async function confirmCandidateDelete() {
@@ -274,190 +280,104 @@ export default function AdminDashboard() {
 
   return (
     <div className="leaf-module space-y-6">
-      {/* 1. Experiment Overview */}
+      {/* 1. Fine-Tuning Workflows */}
       <section className="card space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Research Experiment Results</h2>
+          <p className="eyebrow">Model Fine-Tuning &amp; Candidate Management</p>
+          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Choose a Fine-Tuning Workflow</h2>
           <p className="text-sm text-forest-muted">
-            Research dashboard — shows controlled Active Learning experiment results and live verified samples collected for future retraining.
+            PaddyGuard supports both controlled offline research retraining and integrated in-app PyTorch fine-tuning.
           </p>
         </div>
 
-        <div className="rounded-xl border border-forest/10 bg-forest/5 p-4 text-xs space-y-1">
-          <p className="text-forest font-semibold">
-            Selection Policy:
-          </p>
-          <p className="text-forest-muted">
-            Expert review candidates are selected using a hybrid uncertainty strategy: all valid predictions below 50% confidence plus the five lowest-confidence pending predictions. Model retraining is performed offline in controlled experiments. Expert verification does not automatically update the deployed model.
-          </p>
+        {/* Workflow Tabs */}
+        <div className="flex flex-wrap gap-2 border-b border-beige/60">
+          <button
+            type="button"
+            onClick={() => setWorkflowTab('offline')}
+            className={`px-4 py-2.5 text-sm font-bold rounded-t-lg transition-colors ${
+              workflowTab === 'offline' ? 'bg-forest text-white' : 'bg-beige/10 text-forest-muted hover:bg-beige/30'
+            }`}
+            style={{ width: 'auto' }}
+          >
+            Option 1: Colab Fine-Tuning
+          </button>
+          <button
+            type="button"
+            onClick={() => setWorkflowTab('inapp')}
+            className={`px-4 py-2.5 text-sm font-bold rounded-t-lg transition-colors ${
+              workflowTab === 'inapp' ? 'bg-forest text-white' : 'bg-beige/10 text-forest-muted hover:bg-beige/30'
+            }`}
+            style={{ width: 'auto' }}
+          >
+            Option 2: In-App Fine-Tuning
+          </button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-beige p-4 bg-beige/10 space-y-2">
-            <h3 className="font-bold text-forest text-sm">Current Deployed Model</h3>
-            <div className="text-sm text-forest space-y-1">
-              <p><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
-              <p><strong>Architecture:</strong> EfficientNetB3</p>
-              <p><strong>Test Accuracy:</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
-              <p><strong>Macro F1:</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
-              <p><strong>Training labels:</strong> 2300</p>
-              <p><strong>Classes:</strong> 4</p>
-            </div>
-            <p className="text-[11px] text-forest-muted pt-2 border-t border-beige/60">
-              The deployed checkpoint was selected from the Active Learning experiment because Round 2 achieved the highest held-out test performance.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-beige p-4 bg-white space-y-2">
-            <h3 className="font-bold text-forest text-sm">Key Findings</h3>
-            <div className="text-sm text-forest space-y-1">
-              <p><strong>Same annotation budget (2300 labels):</strong></p>
-              <ul className="list-disc pl-5 text-xs text-forest-muted space-y-0.5">
-                <li>Active Learning: 97.14%</li>
-                <li>Random Sampling: 96.66%</li>
-              </ul>
-              <p>Difference: <strong>+0.48</strong> percentage points in this experiment.</p>
-              <p className="pt-2 border-t border-beige/60"><strong>Overall Improvement:</strong></p>
-              <p className="text-xs">Baseline (95.70%) → Best Active Learning (97.14%) (+1.44 percentage points)</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Experiment Phase</th>
-                <th>Labels</th>
-                <th>Accuracy</th>
-                <th>Macro F1</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Baseline</td>
-                <td>2100</td>
-                <td>95.70%</td>
-                <td>0.9568</td>
-              </tr>
-              <tr>
-                <td>Active Learning +100</td>
-                <td>2200</td>
-                <td>96.90%</td>
-                <td>0.9689</td>
-              </tr>
-              <tr>
-                <td>Random +100</td>
-                <td>2200</td>
-                <td>96.54%</td>
-                <td>0.9652</td>
-              </tr>
-              <tr style={{ background: '#f0fff4', fontWeight: 'bold' }}>
-                <td>Active Learning +200 (Deployed)</td>
-                <td>2300</td>
-                <td>97.14%</td>
-                <td>0.9714</td>
-              </tr>
-              <tr>
-                <td>Random +200</td>
-                <td>2300</td>
-                <td>96.66%</td>
-                <td>0.9664</td>
-              </tr>
-              <tr>
-                <td>Active Learning +300</td>
-                <td>2400</td>
-                <td>96.90%</td>
-                <td>0.9690</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* 2. Active Learning Metrics */}
-      <section className="card space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Live Active Learning Data</h2>
-          <p className="text-xs text-forest-muted">
-            Telemetry metrics of the live expert review process.
-          </p>
-        </div>
-
-        {error && <p className="error">{error}</p>}
-        {stats && (
-          <div className="space-y-6">
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-              <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Pending Reviews</span>
-                <strong className="text-2xl text-forest block mt-1">{stats.pending_expert_reviews}</strong>
-              </div>
-              <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Verified Samples</span>
-                <strong className="text-2xl text-forest block mt-1">{stats.verified_expert_samples}</strong>
-              </div>
-              <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Approved for Training</span>
-                <strong className="text-2xl text-forest block mt-1">{stats.approved_for_training_samples}</strong>
-              </div>
-              <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Available / Unused</span>
-                <strong className="text-2xl text-forest block mt-1">{stats.active_learning_eligible_samples}</strong>
-              </div>
-              <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Consumed / Used</span>
-                <strong className="text-2xl text-forest block mt-1">{stats.consumed_training_samples}</strong>
-              </div>
-            </div>
-
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[
-                    { name: 'Pending Review', count: stats.pending_expert_reviews },
-                    { name: 'Verified', count: stats.verified_expert_samples },
-                    { name: 'Approved', count: stats.approved_for_training_samples },
-                    { name: 'Available', count: stats.active_learning_eligible_samples },
-                    { name: 'Consumed', count: stats.consumed_training_samples },
-                    { name: 'Active Models', count: stats.storage_summary?.active_models || 0 },
-                    { name: 'Backups Kept', count: stats.storage_summary?.backups_kept || 0 },
-                    { name: 'Rejected Kept', count: stats.storage_summary?.rejected_candidates_kept || 0 },
-                  ]}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip cursor={{ fill: '#f4f8f5' }} contentStyle={{ borderRadius: '8px', border: '1px solid #dfece3' }} />
-                  <Bar dataKey="count" fill="#2c7a7b" radius={[4, 4, 0, 0]} barSize={35} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
+        {workflowTab === 'offline' ? (
+          <div className="space-y-6 animate-entrance">
+            {/* Option 1 explanation */}
             <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-3">
-              <h3 className="font-bold text-forest text-sm">Prepare Next Active Learning Batch</h3>
-              <p className="text-xs text-forest-muted">
-                <strong>Research recommendation:</strong> Wait until at least 100 expert-verified samples are collected before starting the next controlled retraining round.
-              </p>
-              <div className="text-sm font-semibold text-forest flex flex-wrap gap-x-6 gap-y-1">
-                <span>Available verified samples: <strong className="text-forest">{stats.active_learning_eligible_samples}</strong></span>
-                <span>Mode: <strong>{stats.active_learning_eligible_samples < 100 ? 'DEMO' : 'CONTROLLED'}</strong></span>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <span className="eyebrow">Option 1</span>
+                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>Offline / Google Colab Fine-Tuning</h3>
+                </div>
+                <span className="analytics-panel__badge">Research / Offline Workflow</span>
               </div>
-              
-              {stats.active_learning_eligible_samples > 0 ? (
-                <button
-                  onClick={handlePrepareClick}
-                  disabled={isPreparingBatch}
-                  className="primary-submit-btn w-auto"
-                  style={{ width: 'auto', padding: '10px 20px', fontSize: '0.85rem' }}
-                >
-                  {isPreparingBatch ? 'Preparing Batch...' : 'Prepare Next Batch'}
-                </button>
-              ) : (
-                <button disabled className="btn-secondary" style={{ cursor: 'not-allowed', width: 'auto' }}>
-                  No expert-verified samples available
-                </button>
-              )}
+              <p className="text-sm text-forest-muted">
+                Export expert-verified training samples, fine-tune the deployed model externally in Google Colab, generate a new .pth candidate checkpoint, then upload the candidate here for evaluation against the current deployed model.
+              </p>
+              <p className="text-xs text-forest-muted italic">
+                Best for larger controlled experiments, GPU training, reproducibility, and Colab-based retraining.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-semibold text-forest">
+                {[
+                  'Expert Verified Samples',
+                  'Export Training Batch',
+                  'Google Colab Fine-Tuning',
+                  'Generate Candidate .pth',
+                  'Upload Candidate',
+                  'Held-out Evaluation',
+                  'Compare with Current Model',
+                  'Reject / Eligible for Promotion',
+                ].map((step, i, arr) => (
+                  <span key={step} className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-white border border-beige">{step}</span>
+                    {i < arr.length - 1 && <span className="text-forest-muted">&rarr;</span>}
+                  </span>
+                ))}
+              </div>
             </div>
+
+            {/* Prepare Next Active Learning Batch */}
+            {stats && (
+              <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-3">
+                <h3 className="font-bold text-forest text-sm">Prepare Next Active Learning Batch</h3>
+                <p className="text-xs text-forest-muted">
+                  <strong>Research recommendation:</strong> Wait until at least 100 expert-verified samples are collected before starting the next controlled retraining round.
+                </p>
+                <div className="text-sm font-semibold text-forest flex flex-wrap gap-x-6 gap-y-1">
+                  <span>Available verified samples: <strong className="text-forest">{stats.active_learning_eligible_samples}</strong></span>
+                  <span>Mode: <strong>{stats.active_learning_eligible_samples < 100 ? 'DEMO' : 'CONTROLLED'}</strong></span>
+                </div>
+
+                {stats.active_learning_eligible_samples > 0 ? (
+                  <button
+                    onClick={handlePrepareClick}
+                    disabled={isPreparingBatch}
+                    className="primary-submit-btn w-auto"
+                    style={{ width: 'auto', padding: '10px 20px', fontSize: '0.85rem' }}
+                  >
+                    {isPreparingBatch ? 'Preparing Batch...' : 'Prepare Next Batch'}
+                  </button>
+                ) : (
+                  <button disabled className="btn-secondary" style={{ cursor: 'not-allowed', width: 'auto' }}>
+                    No expert-verified samples available
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Prepared Batches List */}
             {batches.length > 0 && (
@@ -522,19 +442,16 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
-          </div>
-        )}
-      </section>
 
-      {/* 3. Selected Batch Details */}
-      {selectedBatch && (
-        <section className="card space-y-6 animate-entrance">
-          <div>
-            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Batch Details</h2>
-            <p className="text-xs text-forest-muted">
-              Batch metadata and verification checklist.
-            </p>
-          </div>
+            {/* Selected Batch Details */}
+            {selectedBatch && (
+              <div className="rounded-xl border border-beige/60 bg-white p-5 space-y-6 animate-entrance">
+                <div>
+                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>Batch Details</h3>
+                  <p className="text-xs text-forest-muted">
+                    Batch metadata and verification checklist.
+                  </p>
+                </div>
 
           <div className="grid gap-4 md:grid-cols-2 text-sm text-forest">
             <div className="space-y-1">
@@ -668,28 +585,21 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        </section>
-      )}
-
-      {/* 4. Candidate Model Evaluation */}
-      <section className="card space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Candidate Model Evaluation</h2>
-          <p className="text-xs text-forest-muted">
-            Upload and evaluate candidate model checkpoints against the deployed Round 2 baseline.
-          </p>
         </div>
+            )}
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Upload Form */}
-          <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-4">
-            <h3 className="font-bold text-forest text-sm flex items-center gap-1">
-              <UploadCloud className="h-4 w-4 text-amber" /> Upload Evaluated Checkpoint
-            </h3>
-            {uploadError && <div className="rounded-lg bg-red-50 text-red-700 p-2.5 text-xs font-semibold">{uploadError}</div>}
-            {uploadSuccess && <div className="rounded-lg bg-green-50 text-green-700 p-2.5 text-xs font-semibold">{uploadSuccess}</div>}
+            {/* Candidate Upload (manual .pth generated externally in Colab) */}
+            <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-4">
+              <h3 className="font-bold text-forest text-sm flex items-center gap-1">
+                <UploadCloud className="h-4 w-4 text-amber" /> Upload Evaluated Checkpoint
+              </h3>
+              <p className="text-xs text-forest-muted">
+                Upload the .pth candidate checkpoint generated in Google Colab, together with its held-out evaluation metrics, so it can be compared against the current deployed model.
+              </p>
+              {uploadError && <div className="rounded-lg bg-red-50 text-red-700 p-2.5 text-xs font-semibold">{uploadError}</div>}
+              {uploadSuccess && <div className="rounded-lg bg-green-50 text-green-700 p-2.5 text-xs font-semibold">{uploadSuccess}</div>}
 
-            <form onSubmit={handleUploadSubmit} className="space-y-3">
+              <form onSubmit={handleUploadSubmit} className="space-y-3">
               <div>
                 <label className="text-xs font-semibold block mb-1">Candidate file (.pth)</label>
                 <input
@@ -757,9 +667,96 @@ export default function AdminDashboard() {
               </button>
             </form>
           </div>
+          </div>
+        ) : (
+          <div className="space-y-6 animate-entrance">
+            <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <span className="eyebrow">Option 2</span>
+                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>In-App PyTorch Fine-Tuning</h3>
+                </div>
+                <span className="analytics-panel__badge">Integrated / In-App Workflow</span>
+              </div>
+              <p className="text-sm text-forest-muted">
+                Use expert-verified samples to fine-tune the currently deployed model directly inside PaddyGuard using real PyTorch. A new candidate checkpoint is automatically created, evaluated on the held-out test set, and compared with the current deployed model.
+              </p>
+              <p className="text-xs text-forest-muted italic">
+                Best for demonstrating the complete automated human-in-the-loop model update pipeline.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-semibold text-forest">
+                {[
+                  'Expert Verified Samples',
+                  'Readiness Check',
+                  'Start Fine-Tuning',
+                  'Real PyTorch Training',
+                  'Automatic Candidate Creation',
+                  'Held-out Evaluation',
+                  'Current vs Candidate Comparison',
+                  'Reject / Eligible for Promotion',
+                ].map((step, i, arr) => (
+                  <span key={step} className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-white border border-beige">{step}</span>
+                    {i < arr.length - 1 && <span className="text-forest-muted">&rarr;</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-          {/* Model Comparison Graph */}
-          <div className="rounded-xl border border-beige bg-white p-5 space-y-4">
+            {/* 3b. In-App Fine Tuning (Real PyTorch) — existing component, unmodified */}
+            <FineTuningPanel />
+          </div>
+        )}
+      </section>
+
+      {/* 2. Candidate Evaluation & Model Governance (shared by both workflows) — collapsible */}
+      <section className="card space-y-0" ref={governanceRef}>
+        <button
+          type="button"
+          onClick={() => setGovernanceExpanded((v) => !v)}
+          aria-expanded={governanceExpanded}
+          className="w-full flex items-center justify-between gap-3 text-left"
+          style={{ background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
+        >
+          <div>
+            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Candidate Evaluation &amp; Model Governance</h2>
+            {!governanceExpanded && (
+              <div className="text-xs text-forest-muted space-y-0.5 mt-1">
+                <p style={{ margin: 0 }}>
+                  Current Model: {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'} Accuracy | F1 {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}
+                </p>
+                <p style={{ margin: 0 }}>
+                  {candidates.length} Previous Candidate{candidates.length === 1 ? '' : 's'}
+                </p>
+              </div>
+            )}
+          </div>
+          <ChevronDown
+            className={`h-5 w-5 text-forest flex-shrink-0 transition-transform duration-200 ${governanceExpanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {governanceExpanded && (
+          <div className="space-y-6 animate-entrance pt-6">
+            <p className="text-xs text-forest-muted">
+              Candidates produced by either workflow — Option 1 offline/Colab uploads or Option 2 in-app PyTorch training — pass through this same held-out evaluation and promotion-decision process before any deployment change is made.
+            </p>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-xl border border-beige p-4 bg-beige/10 space-y-2">
+                <h3 className="font-bold text-forest text-sm">Current Deployed Model</h3>
+                <div className="text-sm text-forest space-y-1">
+                  <p><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
+                  <p><strong>Test Accuracy:</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
+                  <p><strong>Macro F1:</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
+                </div>
+                <p className="text-[11px] text-forest-muted pt-2 border-t border-beige/60">
+                  Every candidate — regardless of which fine-tuning workflow produced it — is compared against this checkpoint before a promotion decision is made.
+                </p>
+              </div>
+
+              {/* Model Comparison Graph */}
+              <div className="rounded-xl border border-beige bg-white p-5 space-y-4">
             <h3 className="font-bold text-forest text-sm">Model Comparison</h3>
             {selectedCandidate ? (
               <div className="space-y-4">
@@ -939,10 +936,192 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+          </div>
+        )}
       </section>
 
-      {/* 5. In-App Fine Tuning (Real PyTorch) */}
-      <FineTuningPanel />
+      {/* 3. Research Experiment Results — controlled/offline research evidence, collapsible, kept separate from live in-app fine-tuning data */}
+      <section className="card space-y-0">
+        <button
+          type="button"
+          onClick={() => setResearchExpanded((v) => !v)}
+          aria-expanded={researchExpanded}
+          className="w-full flex items-center justify-between gap-3 text-left"
+          style={{ background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
+        >
+          <div>
+            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Research Experiment Results</h2>
+            {!researchExpanded && (
+              <p className="text-xs text-forest-muted" style={{ margin: '4px 0 0' }}>
+                Best: Active Learning Round 2 | {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'} Accuracy | F1 {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'} | AL vs Random +0.48 pp
+              </p>
+            )}
+          </div>
+          <ChevronDown
+            className={`h-5 w-5 text-forest flex-shrink-0 transition-transform duration-200 ${researchExpanded ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {researchExpanded && (
+          <div className="space-y-6 animate-entrance pt-6">
+            <p className="text-sm text-forest-muted">
+              Research dashboard — shows controlled Active Learning experiment results and live verified samples collected for future retraining.
+            </p>
+
+            <div className="rounded-xl border border-forest/10 bg-forest/5 p-4 text-xs space-y-1">
+              <p className="text-forest font-semibold">
+                Selection Policy:
+              </p>
+              <p className="text-forest-muted">
+                Expert review candidates are selected using a hybrid uncertainty strategy: all valid predictions below 50% confidence plus the five lowest-confidence pending predictions. Model retraining is performed offline in controlled experiments. Expert verification does not automatically update the deployed model.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="rounded-xl border border-beige p-4 bg-beige/10 space-y-2">
+                <h3 className="font-bold text-forest text-sm">Current Deployed Model</h3>
+                <div className="text-sm text-forest space-y-1">
+                  <p><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
+                  <p><strong>Architecture:</strong> EfficientNetB3</p>
+                  <p><strong>Test Accuracy:</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
+                  <p><strong>Macro F1:</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
+                  <p><strong>Training labels:</strong> 2300</p>
+                  <p><strong>Classes:</strong> 4</p>
+                </div>
+                <p className="text-[11px] text-forest-muted pt-2 border-t border-beige/60">
+                  The deployed checkpoint was selected from the Active Learning experiment because Round 2 achieved the highest held-out test performance.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-beige p-4 bg-white space-y-2">
+                <h3 className="font-bold text-forest text-sm">Key Findings</h3>
+                <div className="text-sm text-forest space-y-1">
+                  <p><strong>Same annotation budget (2300 labels):</strong></p>
+                  <ul className="list-disc pl-5 text-xs text-forest-muted space-y-0.5">
+                    <li>Active Learning: 97.14%</li>
+                    <li>Random Sampling: 96.66%</li>
+                  </ul>
+                  <p>Difference: <strong>+0.48</strong> percentage points in this experiment.</p>
+                  <p className="pt-2 border-t border-beige/60"><strong>Overall Improvement:</strong></p>
+                  <p className="text-xs">Baseline (95.70%) → Best Active Learning (97.14%) (+1.44 percentage points)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Experiment Phase</th>
+                    <th>Labels</th>
+                    <th>Accuracy</th>
+                    <th>Macro F1</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Baseline</td>
+                    <td>2100</td>
+                    <td>95.70%</td>
+                    <td>0.9568</td>
+                  </tr>
+                  <tr>
+                    <td>Active Learning +100</td>
+                    <td>2200</td>
+                    <td>96.90%</td>
+                    <td>0.9689</td>
+                  </tr>
+                  <tr>
+                    <td>Random +100</td>
+                    <td>2200</td>
+                    <td>96.54%</td>
+                    <td>0.9652</td>
+                  </tr>
+                  <tr style={{ background: '#f0fff4', fontWeight: 'bold' }}>
+                    <td>Active Learning +200 (Deployed)</td>
+                    <td>2300</td>
+                    <td>97.14%</td>
+                    <td>0.9714</td>
+                  </tr>
+                  <tr>
+                    <td>Random +200</td>
+                    <td>2300</td>
+                    <td>96.66%</td>
+                    <td>0.9664</td>
+                  </tr>
+                  <tr>
+                    <td>Active Learning +300</td>
+                    <td>2400</td>
+                    <td>96.90%</td>
+                    <td>0.9690</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* 4. Live Active Learning Data */}
+      <section className="card space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Live Active Learning Data</h2>
+          <p className="text-xs text-forest-muted">
+            Telemetry metrics of the live expert review process.
+          </p>
+        </div>
+
+        {error && <p className="error">{error}</p>}
+        {stats && (
+          <div className="space-y-6">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+              <div className="rounded-xl border border-beige bg-beige/10 p-3">
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Pending Reviews</span>
+                <strong className="text-2xl text-forest block mt-1">{stats.pending_expert_reviews}</strong>
+              </div>
+              <div className="rounded-xl border border-beige bg-beige/10 p-3">
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Verified Samples</span>
+                <strong className="text-2xl text-forest block mt-1">{stats.verified_expert_samples}</strong>
+              </div>
+              <div className="rounded-xl border border-beige bg-beige/10 p-3">
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Approved for Training</span>
+                <strong className="text-2xl text-forest block mt-1">{stats.approved_for_training_samples}</strong>
+              </div>
+              <div className="rounded-xl border border-beige bg-beige/10 p-3">
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Available / Unused</span>
+                <strong className="text-2xl text-forest block mt-1">{stats.active_learning_eligible_samples}</strong>
+              </div>
+              <div className="rounded-xl border border-beige bg-beige/10 p-3">
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Consumed / Used</span>
+                <strong className="text-2xl text-forest block mt-1">{stats.consumed_training_samples}</strong>
+              </div>
+            </div>
+
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[
+                    { name: 'Pending Review', count: stats.pending_expert_reviews },
+                    { name: 'Verified', count: stats.verified_expert_samples },
+                    { name: 'Approved', count: stats.approved_for_training_samples },
+                    { name: 'Available', count: stats.active_learning_eligible_samples },
+                    { name: 'Consumed', count: stats.consumed_training_samples },
+                    { name: 'Active Models', count: stats.storage_summary?.active_models || 0 },
+                    { name: 'Backups Kept', count: stats.storage_summary?.backups_kept || 0 },
+                    { name: 'Rejected Kept', count: stats.storage_summary?.rejected_candidates_kept || 0 },
+                  ]}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip cursor={{ fill: '#f4f8f5' }} contentStyle={{ borderRadius: '8px', border: '1px solid #dfece3' }} />
+                  <Bar dataKey="count" fill="#2c7a7b" radius={[4, 4, 0, 0]} barSize={35} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* Demo batch Warning Modal */}
       {compareCandidate && (
