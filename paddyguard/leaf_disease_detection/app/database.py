@@ -27,14 +27,14 @@ def get_mongo_client():
             client = MongoClient(uri, serverSelectionTimeoutMS=3000)
             client.admin.command('ismaster')
             _mongo_client = client
-        except Exception:
+        except Exception as primary_error:
             # Fallback to local MongoDB if remote URI fails or has DNS issues
             try:
                 local_client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=2000)
                 local_client.admin.command('ismaster')
                 _mongo_client = local_client
             except Exception:
-                _mongo_client = client
+                raise primary_error
     return _mongo_client
 
 def get_mongo_db():
