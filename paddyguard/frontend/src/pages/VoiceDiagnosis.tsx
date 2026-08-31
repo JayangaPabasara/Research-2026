@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Mic, Square, UploadCloud, Sparkles } from 'lucide-react'
+import { Mic, Square, UploadCloud, Sparkles, History as HistoryIcon, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import EmptyState from '@/components/ui/EmptyState'
 import DiagnosisResult from '@/components/voice/DiagnosisResult'
 import FollowUpDialog from '@/components/voice/FollowUpDialog'
 import OODWarning from '@/components/voice/OODWarning'
@@ -14,8 +15,10 @@ import type { VoiceDiagnosisResult } from '@/lib/voiceApi'
 import { registerAudio } from '@/lib/audioPlayer'
 import { useAuthStore } from '@/store/authStore'
 import { useDiagnosisStore } from '@/store/diagnosisStore'
+import { diseaseSinhalaName, formatConfidence, formatDate } from '@/lib/disease'
 
 type Stage = 'idle' | 'recording' | 'analysing' | 'result' | 'followup' | 'ood'
+type PageTab = 'analyze' | 'history'
 
 const EXAMPLES = [
   'කොළ වල දුඹුරු පැහැති පුල්ලි තියෙනවා',
@@ -24,6 +27,7 @@ const EXAMPLES = [
 ]
 
 export default function VoiceDiagnosis() {
+  const [pageTab, setPageTab] = useState<PageTab>('analyze')
   const [stage, setStage] = useState<Stage>('idle')
   const [result, setResult] = useState<VoiceDiagnosisResult | null>(null)
   const [followupLoading, setFollowupLoading] = useState(false)
@@ -31,6 +35,9 @@ export default function VoiceDiagnosis() {
   const recorder = useAudioRecorder()
   const user = useAuthStore((s) => s.user)
   const addVoiceEntry = useDiagnosisStore((s) => s.addVoiceEntry)
+  const voiceHistory = useDiagnosisStore((s) => s.voiceHistory)
+  const deleteVoiceEntry = useDiagnosisStore((s) => s.deleteVoiceEntry)
+  const myVoiceHistory = voiceHistory.filter((v) => v.userId === user?.id)
 
   // Novelty 4: Auto-play follow-up question TTS — routed through the shared
   // audio singleton so it can never overlap with the result clip.
@@ -123,6 +130,57 @@ export default function VoiceDiagnosis() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      {/* Tab bar: switch between Voice Analyze and History */}
+      <div className="mb-6 flex gap-2 rounded-xl bg-beige p-1">
+        {([
+          { key: 'analyze' as PageTab, label: 'Voice Analyze', labelSi: 'විශ්ලේෂණය', icon: Mic },
+          { key: 'history' as PageTab, label: 'History', labelSi: 'ඉතිහාසය', icon: HistoryIcon },
+        ]).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setPageTab(t.key)}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm
+              font-semibold transition-colors
+              ${pageTab === t.key ? 'bg-white text-forest shadow-sm' : 'text-forest-muted'}`}
+          >
+            <t.icon className="h-4 w-4" />
+            <span className="font-sinhala">{t.labelSi}</span>
+            <span className="text-xs text-forest-muted">| {t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {pageTab === 'history' ? (
+        myVoiceHistory.length === 0 ? (
+          <EmptyState icon={HistoryIcon} title="No voice diagnoses yet" />
+        ) : (
+          <div className="space-y-3">
+            {myVoiceHistory.map((v) => (
+              <Card key={v.id} className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="font-sinhala font-medium text-forest">
+                    {diseaseSinhalaName(v.disease)}
+                  </p>
+                  <p className="text-xs text-forest-muted">{formatDate(v.timestamp)}</p>
+                </div>
+                <span className="text-sm font-semibold text-forest-muted">
+                  {formatConfidence(v.confidence)}
+                </span>
+                <button
+                  onClick={() => deleteVoiceEntry(v.id)}
+                  className="ml-1 rounded-lg p-1.5 text-forest-muted
+                    hover:bg-red-50 hover:text-red-soft transition-colors"
+                  title="Delete this entry | මෙම වාර්තාව මකන්න"
+                  aria-label="Delete voice diagnosis entry"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : (
+      <>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
         {/* ── LEFT: Voice input ─────────────────────────────────────────── */}
         <div className="space-y-6">
@@ -265,6 +323,8 @@ export default function VoiceDiagnosis() {
           onSkip={reset}
           loading={followupLoading}
         />
+      )}
+      </>
       )}
     </div>
   )
