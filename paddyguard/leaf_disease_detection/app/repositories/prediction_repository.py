@@ -131,6 +131,39 @@ class PredictionRepository:
         })
         return [DocumentWrapper(doc) for doc in cursor]
 
+    def find_review_queue_records(self, top_k_limit=5):
+        """Full records currently shown in the Expert Review Queue.
+
+        Mirrors the exact union used by list_review_queue(): LOW_CONFIDENCE
+        pending records plus the current top-K borderline-uncertainty pending
+        records. Used only to compute a safe, restrictive id set for bulk
+        clearing of the pending queue - never touches verified/approved/
+        consumed records because both source queries require
+        review_status == "pending".
+        """
+        seen = {}
+        for r in self.find_pending_reviews():
+            seen[r.case_id] = r
+        for r in self.find_top_k_candidates(limit=top_k_limit):
+            seen.setdefault(r.case_id, r)
+        return list(seen.values())
+
+    def delete_pending_review_queue_records(self, case_ids):
+        """Bulk-delete only records that are still pending review among case_ids.
+
+        Restrictive, explicit filter (case_id in a known-safe id set AND
+        review_status == "pending") - never an unrestricted delete_many({}).
+        Guards against a race where a record was verified/approved/consumed
+        between id lookup and delete.
+        """
+        if not case_ids:
+            return 0
+        result = self.collection.delete_many({
+            "case_id": {"$in": list(case_ids)},
+            "review_status": "pending"
+        })
+        return result.deleted_count
+
     def find_by_consumed_job_id(self, job_id):
         cursor = self.collection.find({"consumed_by_job_id": job_id})
         return [DocumentWrapper(doc) for doc in cursor]
@@ -217,6 +250,20 @@ class PredictionRepository:
             "review_status": "verified",
             "approved_for_training": True,
             "consumed_by_job_id": None
+        })
+
+    def count_ood_excluded_unconsumed_samples(self):
+        """Count unconsumed reviewed samples excluded from fine-tuning due to OOD status/label.
+
+        Read-only helper used for fine-tuning console logging only; does not affect
+        eligibility filtering, training selection, or promotion logic.
+        """
+        return self.collection.count_documents({
+            "consumed_by_job_id": None,
+            "$or": [
+                {"status": "OOD"},
+                {"expert_validated_disease": {"$in": ["OOD", "Unknown", "UNKNOWN", "OUT_OF_DISTRIBUTION"]}}
+            ]
         })
 
     def count(self):

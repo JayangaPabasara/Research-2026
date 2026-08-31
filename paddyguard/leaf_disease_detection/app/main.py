@@ -21,6 +21,23 @@ from training import model_retention
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+class _SuppressFineTuneStatusPolling(logging.Filter):
+    """Silence noisy 200 GET access logs for fine-tune status polling only.
+
+    The Super Admin dashboard polls /api/expert/fine-tune/status/<job_id> every
+    few seconds while a job runs, which floods the terminal during live demos.
+    Every other werkzeug access log line (all other routes, and any non-200
+    status on this route, including 4xx/5xx) is left untouched.
+    """
+    _pattern = re.compile(r'"GET /api/expert/fine-tune/status/\S+ HTTP/\d\.\d" 200')
+
+    def filter(self, record):
+        return not self._pattern.search(record.getMessage())
+
+
+logging.getLogger("werkzeug").addFilter(_SuppressFineTuneStatusPolling())
+
 # Seed DeployedModelRecord in MongoDB
 try:
     deployment_repo = DeploymentRepository()

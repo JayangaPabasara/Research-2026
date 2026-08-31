@@ -101,6 +101,11 @@ async def verify_case(request: Request, case_id: str):
     return await _forward(request, "POST", f"/api/expert/review-queue/{case_id}/verify", json=body)
 
 
+@router.delete("/expert/review-queue/pending")
+async def clear_pending_review_queue(request: Request):
+    return await _forward(request, "DELETE", "/api/expert/review-queue/pending")
+
+
 @router.get("/expert/dashboard-stats")
 async def dashboard_stats(request: Request):
     return await _forward(request, "GET", "/api/expert/dashboard-stats")
