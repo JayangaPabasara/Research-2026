@@ -1,5 +1,17 @@
 import axios from 'axios'
 
+// FastAPI returns `detail` as a string for HTTPException, but as an array of
+// {msg, loc, ...} objects for 422 pydantic validation errors — rendering that
+// array directly in JSX crashes React ("Objects are not valid as a React child").
+export function getErrorMessage(err: unknown, fallback: string): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map((d) => (typeof d === 'string' ? d : d?.msg)).filter(Boolean).join(' ') || fallback
+  }
+  return fallback
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
   timeout: 240000,

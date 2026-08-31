@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ImagePlus, X, MapPin, Globe, AlertTriangle } from 'lucide-react'
+import { ImagePlus, X, MapPin, Globe, AlertTriangle, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Scoped UI Primitives
@@ -677,6 +677,21 @@ export default function LeafDisease() {
                           <small className="disclaimer">{t.gradCamDisclaimer}</small>
                         </div>
                       )}
+
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                          navigate('/chat', {
+                            state: {
+                              initialMessage: `Tell me about treatment for ${result.prediction.prediction}`,
+                            },
+                          })
+                        }
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        ප්‍රතිකාර | Treatment
+                      </Button>
 
                       <WeatherContext
                         caseId={result.case_id}

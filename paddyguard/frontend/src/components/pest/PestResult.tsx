@@ -1,6 +1,8 @@
-import { AlertTriangle, Bug, CheckCircle2, Info, ScanSearch, ShieldAlert } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { AlertTriangle, Bug, CheckCircle2, Info, MessageCircle, ScanSearch, ShieldAlert } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
 import { formatConfidence } from '@/lib/disease'
 import type { PestDetectionResult } from '@/lib/pestApi'
 
@@ -20,6 +22,7 @@ function sourceLabel(source: PestDetectionResult['source']) {
 }
 
 export default function PestResult({ result }: { result: PestDetectionResult }) {
+  const navigate = useNavigate()
   const quality = result.quality
 
   if (result.source === 'quality_check' || result.prediction === 'Image Quality Too Low') {
@@ -140,6 +143,21 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
       ) : (
         <InfoCard text="Grad-CAM is unavailable for this result because the image was rejected or treated as a hard unknown." />
       )}
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() =>
+          navigate('/chat', {
+            state: {
+              initialMessage: `Tell me about treatment for ${result.prediction}`,
+            },
+          })
+        }
+      >
+        <MessageCircle className="h-4 w-4" />
+        ප්‍රතිකාර | Treatment
+      </Button>
     </div>
   )
 }

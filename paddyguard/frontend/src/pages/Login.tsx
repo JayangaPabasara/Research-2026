@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button'
 import { login, getProfile } from '@/lib/authApi'
 import { ensureLeafSession } from '@/lib/leafApi'
 import { useAuthStore } from '@/store/authStore'
+import { getErrorMessage } from '@/lib/api'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -32,8 +33,7 @@ export default function Login() {
       ensureLeafSession(email, password, profile.full_name || undefined)
       navigate('/')
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Login failed. Please try again.'
+      const message = getErrorMessage(err, 'Login failed. Please try again.')
       setError(message)
       toast.error(message)
     } finally {
@@ -90,9 +90,12 @@ export default function Login() {
           </Link>
         </p>
 
-        <div className="mt-6 border-t border-beige pt-4 text-center">
-          <Link to="/staff-login" className="text-xs text-forest-muted hover:text-forest">
+        <div className="mt-6 border-t border-beige pt-4 text-center space-y-2">
+          <Link to="/staff-login" className="block text-xs text-forest-muted hover:text-forest">
             Staff / Expert login →
+          </Link>
+          <Link to="/pest-admin-login" className="block text-xs text-forest-muted hover:text-forest">
+            Pest Admin login →
           </Link>
         </div>
       </div>

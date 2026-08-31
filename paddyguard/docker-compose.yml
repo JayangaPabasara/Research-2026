@@ -23,6 +23,7 @@ services:
 
   voice_nlp:
     build: ./voice_nlp
+    restart: on-failure
     ports:
       - "8001:8001"
     env_file: ./voice_nlp/.env

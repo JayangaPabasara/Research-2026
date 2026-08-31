@@ -59,7 +59,7 @@ export default function Home() {
         <p className="font-sinhala text-forest-muted">ඔබේ ගොයමේ රෝගය හඳුනාගැනීමට ක්‍රමයක් තෝරන්න</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {MODULES.map((mod) => (
           <button
             key={mod.key}

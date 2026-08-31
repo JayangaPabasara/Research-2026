@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import { staffLogin } from '@/lib/leafApi'
+import { getErrorMessage } from '@/lib/api'
 
 export default function StaffLogin() {
   const navigate = useNavigate()
@@ -25,8 +26,7 @@ export default function StaffLogin() {
       else if (auth.role === 'EXPERT') navigate('/expert-review')
       else navigate('/leaf')
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Login failed. Please try again.'
+      const message = getErrorMessage(err, 'Login failed. Please try again.')
       setError(message)
       toast.error(message)
     } finally {
