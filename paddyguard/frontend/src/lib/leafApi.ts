@@ -190,6 +190,16 @@ export async function verifyCase(caseId: string, expertLabel: string) {
   return data
 }
 
+export interface ClearPendingReviewQueueResult {
+  success: boolean
+  deleted_count: number
+}
+
+export async function clearPendingReviewQueue(): Promise<ClearPendingReviewQueueResult> {
+  const { data } = await leafApi.delete(`${LEAF_API_BASE}/expert/review-queue/pending`)
+  return data
+}
+
 export interface DashboardStats {
   pending_expert_reviews: number
   verified_expert_samples: number

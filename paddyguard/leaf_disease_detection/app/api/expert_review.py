@@ -6,6 +6,7 @@ from flask import Blueprint, g, jsonify, request
 
 from .deps import get_top_k_candidates, token_required
 from ..config import settings
+from ..cloudinary_service import delete_cloudinary_asset
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,50 @@ def verify_review_case(case_id):
         return jsonify({"message": "Case verified", "case_id": case_id})
     except Exception as exc:
         logger.error(f"Error verifying review case: {exc}", exc_info=True)
+        return jsonify({"detail": str(exc)}), 500
+
+
+@expert_review_bp.route("/api/expert/review-queue/pending", methods=["DELETE"])
+@token_required(required_role="SUPER_ADMIN")
+def clear_pending_review_queue():
+    """Bulk-clear the pending Expert Review Queue.
+
+    Deletes ONLY the exact set of records currently shown in the queue
+    (LOW_CONFIDENCE pending + top-K borderline pending) - the same union
+    list_review_queue() computes. Verified, approved, consumed, candidate,
+    training, and deployed-model records are never touched: they don't
+    satisfy review_status == "pending" and are excluded by construction.
+    """
+    try:
+        records = g.prediction_repo.find_review_queue_records()
+        case_ids = [r.case_id for r in records]
+
+        deleted_count = g.prediction_repo.delete_pending_review_queue_records(case_ids)
+
+        # Best-effort Cloudinary cleanup for the removed records only,
+        # skipping any asset still referenced by another remaining case.
+        for r in records:
+            try:
+                if r.image_public_id:
+                    other = g.prediction_repo.collection.find_one({
+                        "image_public_id": r.image_public_id,
+                        "case_id": {"$ne": r.case_id}
+                    })
+                    if not other:
+                        delete_cloudinary_asset(r.image_public_id)
+                if r.gradcam_public_id:
+                    other = g.prediction_repo.collection.find_one({
+                        "gradcam_public_id": r.gradcam_public_id,
+                        "case_id": {"$ne": r.case_id}
+                    })
+                    if not other:
+                        delete_cloudinary_asset(r.gradcam_public_id)
+            except Exception:
+                logger.warning(f"Cloudinary cleanup failed for case {r.case_id}", exc_info=True)
+
+        return jsonify({"success": True, "deleted_count": deleted_count})
+    except Exception as exc:
+        logger.error(f"Error clearing pending review queue: {exc}", exc_info=True)
         return jsonify({"detail": str(exc)}), 500
 
 

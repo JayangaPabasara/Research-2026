@@ -3,8 +3,9 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, g, jsonify, request
 from PIL import Image
@@ -17,6 +18,27 @@ from training import model_retention
 logger = logging.getLogger(__name__)
 
 finetune_bp = Blueprint("finetune", __name__)
+
+
+def _stream_training_subprocess(process, log_file_path, job_id):
+    """Tee the fine-tuning subprocess output to the backend console and to its log file.
+
+    Runs in a daemon thread so the request handler is never blocked on training I/O.
+    """
+    try:
+        with open(log_file_path, "w") as log_file:
+            for line in iter(process.stdout.readline, ""):
+                if not line:
+                    break
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                log_file.write(line)
+                log_file.flush()
+    except Exception as exc:
+        logger.error(f"[FINE-TUNE] Error streaming training output for job {job_id}: {exc}", exc_info=True)
+    finally:
+        process.stdout.close()
+        process.wait()
 
 
 @finetune_bp.route("/api/expert/fine-tune/readiness", methods=["GET"])
@@ -95,7 +117,7 @@ def start_fine_tuning():
             return jsonify({"detail": f"Base model checkpoint not found at {base_checkpoint}"}), 400
 
         # 3. Create job
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         job_id = f"FT-{timestamp}-{uuid.uuid4().hex[:6].upper()}"
 
         job_data = {
@@ -111,6 +133,10 @@ def start_fine_tuning():
         for s in eligible_samples:
             g.prediction_repo.update(s.case_id, {"consumed_by_job_id": job_id})
 
+        # Stats for [DATA] console logging only (does not affect sample selection)
+        total_verified_samples = g.prediction_repo.count_verified_expert_samples()
+        ood_excluded_samples = g.prediction_repo.count_ood_excluded_unconsumed_samples()
+
         # 4. Launch subprocess
         trainer_script = os.path.join(backend_dir, "training", "active_learning_trainer.py")
         mongodb_uri_arg = settings.mongodb_uri or "mongodb://localhost:27017"
@@ -122,14 +148,29 @@ def start_fine_tuning():
             "--mongodb-uri", mongodb_uri_arg,
             "--test-dir", test_dir,
             "--base-model", base_checkpoint,
-            "--epochs", str(settings.fine_tune_epochs)
+            "--epochs", str(settings.fine_tune_epochs),
+            "--total-verified-samples", str(total_verified_samples),
+            "--ood-excluded-samples", str(ood_excluded_samples)
         ]
 
         log_file = os.path.join(backend_dir, "data", "training_logs", f"{job_id}.log")
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
 
-        with open(log_file, 'w') as f:
-            subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT, cwd=backend_dir)
+        logger.info(f"[FINE-TUNE] Job {job_id} queued - launching real PyTorch trainer subprocess")
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            cwd=backend_dir,
+            bufsize=1,
+            universal_newlines=True
+        )
+        threading.Thread(
+            target=_stream_training_subprocess,
+            args=(process, log_file, job_id),
+            daemon=True
+        ).start()
 
         return jsonify({"job_id": job_id, "message": "Training job launched"}), 201
 
@@ -237,7 +278,7 @@ def promote_candidate(job_id):
         if current_record and os.path.exists(current_record.checkpoint_path):
             backup_dir = os.path.join(models_dir, "backups")
             os.makedirs(backup_dir, exist_ok=True)
-            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             backup_name = f"backup_{timestamp}_{os.path.basename(current_record.checkpoint_path)}"
             shutil.copy2(current_record.checkpoint_path, os.path.join(backup_dir, backup_name))
 

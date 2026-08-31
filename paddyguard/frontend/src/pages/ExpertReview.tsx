@@ -9,7 +9,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 // Scoped Leaf APIs
-import { getReviewQueue, verifyCase, deleteCase } from '@/lib/leafApi'
+import { getReviewQueue, verifyCase, deleteCase, clearPendingReviewQueue, getLeafAuth } from '@/lib/leafApi'
 import type { ReviewQueueItem } from '@/lib/leafApi'
 import { formatDate } from '@/lib/disease'
 
@@ -51,10 +51,14 @@ export default function ExpertReview() {
   const [verifying, setVerifying] = useState(false)
   const [deletingCase, setDeletingCase] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  
+  const [clearingQueue, setClearingQueue] = useState(false)
+  const [clearQueueConfirmOpen, setClearQueueConfirmOpen] = useState(false)
+
   // Search Filters
   const [searchDisease, setSearchDisease] = useState('')
   const [searchCity, setSearchCity] = useState('')
+
+  const canClearQueue = getLeafAuth()?.role === 'SUPER_ADMIN'
 
   useEffect(() => {
     loadQueue()
@@ -105,6 +109,21 @@ export default function ExpertReview() {
     }
   }
 
+  const handleClearQueue = async () => {
+    setClearingQueue(true)
+    try {
+      const result = await clearPendingReviewQueue()
+      setClearQueueConfirmOpen(false)
+      toast.success(`${result.deleted_count} pending review case${result.deleted_count === 1 ? '' : 's'} cleared successfully.`)
+      await loadQueue()
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || 'Failed to clear pending review queue'
+      toast.error(detail)
+    } finally {
+      setClearingQueue(false)
+    }
+  }
+
   // Derived stats for disease charts
   const diseaseData = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -151,7 +170,29 @@ export default function ExpertReview() {
   return (
     <div className="leaf-module space-y-6">
       <div className="card">
-        <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Expert Review Queue</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+          <h2 className="text-xl font-bold text-forest" style={{ margin: 0 }}>Expert Review Queue</h2>
+          {canClearQueue && !selectedCase && (
+            <button
+              type="button"
+              onClick={() => setClearQueueConfirmOpen(true)}
+              disabled={queue.length === 0}
+              className="btn-secondary"
+              style={{
+                background: '#fff5f5',
+                color: '#c53030',
+                borderColor: '#feb2b2',
+                width: 'auto',
+                padding: '8px 14px',
+                fontSize: '0.85rem',
+                cursor: queue.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: queue.length === 0 ? 0.6 : 1,
+              }}
+            >
+              {queue.length > 0 ? `Clear ${queue.length} Pending Cases` : 'No pending review cases to clear'}
+            </button>
+          )}
+        </div>
         <p className="text-sm text-forest-muted mb-6">
           Expert workspace — review low-confidence rice leaf predictions selected for human verification.
         </p>
@@ -489,6 +530,17 @@ export default function ExpertReview() {
         loading={deletingCase}
         onConfirm={handleDeleteCurrentCase}
         onCancel={() => setDeleteConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={clearQueueConfirmOpen}
+        title="Clear Review Queue?"
+        message={`This will permanently remove all currently pending, unverified review cases from the Expert Review Queue.\n\nVerified, approved, consumed, and historical research records will not be removed.\n\nPending cases to remove: ${queue.length}`}
+        confirmLabel={clearingQueue ? 'Clearing...' : 'Clear Pending Cases'}
+        danger
+        loading={clearingQueue}
+        onConfirm={handleClearQueue}
+        onCancel={() => setClearQueueConfirmOpen(false)}
       />
     </div>
   )
