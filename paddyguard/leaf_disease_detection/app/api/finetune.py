@@ -114,6 +114,21 @@ def start_fine_tuning():
             base_checkpoint = os.path.join(backend_dir, base_checkpoint)
 
         if not os.path.exists(base_checkpoint):
+            # The active deployment record can point at a checkpoint path from a
+            # different machine (model files aren't synced between dev machines
+            # even though the deployment DB is shared). Fall back to the local
+            # default model so fine-tuning can still proceed.
+            fallback_checkpoint = settings.model_path
+            if not os.path.isabs(fallback_checkpoint):
+                fallback_checkpoint = os.path.join(backend_dir, fallback_checkpoint)
+            if os.path.exists(fallback_checkpoint):
+                logger.warning(
+                    f"[FINE-TUNE] Active checkpoint {base_checkpoint} not found locally; "
+                    f"falling back to {fallback_checkpoint}"
+                )
+                base_checkpoint = fallback_checkpoint
+
+        if not os.path.exists(base_checkpoint):
             return jsonify({"detail": f"Base model checkpoint not found at {base_checkpoint}"}), 400
 
         # 3. Create job
@@ -275,12 +290,17 @@ def promote_candidate(job_id):
 
         # 2. Backup current active model on disk
         current_record = g.deployment_repo.find_active()
-        if current_record and os.path.exists(current_record.checkpoint_path):
+        current_checkpoint_abs = None
+        if current_record and current_record.checkpoint_path:
+            current_checkpoint_abs = current_record.checkpoint_path
+            if not os.path.isabs(current_checkpoint_abs):
+                current_checkpoint_abs = os.path.join(backend_dir, current_checkpoint_abs)
+        if current_checkpoint_abs and os.path.exists(current_checkpoint_abs):
             backup_dir = os.path.join(models_dir, "backups")
             os.makedirs(backup_dir, exist_ok=True)
             timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            backup_name = f"backup_{timestamp}_{os.path.basename(current_record.checkpoint_path)}"
-            shutil.copy2(current_record.checkpoint_path, os.path.join(backup_dir, backup_name))
+            backup_name = f"backup_{timestamp}_{os.path.basename(current_checkpoint_abs)}"
+            shutil.copy2(current_checkpoint_abs, os.path.join(backup_dir, backup_name))
 
         # 3. Copy candidate checkpoint to active_model.pth
         shutil.copy2(job.candidate_checkpoint, active_model_path)
@@ -319,7 +339,7 @@ def promote_candidate(job_id):
         g.deployment_repo.deactivate_all()
 
         new_record = {
-            "checkpoint_path": active_model_path,
+            "checkpoint_path": os.path.relpath(active_model_path, backend_dir),
             "test_accuracy": job.candidate_accuracy,
             "macro_f1": job.candidate_macro_f1,
             "deployed_by": g.current_user["username"],

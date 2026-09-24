@@ -2,10 +2,6 @@
 ASR Module: Converts Sinhala audio to Sinhala text.
 Uses: Lingalingeswaran/whisper-small-sinhala
 
-Approach: Matches exactly what worked in Colab notebook.
-  - AutoProcessor + AutoModelForSpeechSeq2Seq
-  - generation_config sets language + task (NOT forced_decoder_ids)
-  - generate() called with NO extra parameters — clean and simple
 """
 from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
 import torch, librosa, os, logging
