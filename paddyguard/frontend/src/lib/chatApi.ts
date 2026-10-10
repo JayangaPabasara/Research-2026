@@ -1,4 +1,12 @@
 import api from './api'
+import { LOCAL_TAXONOMY, type TaxonomyTopic } from './taxonomy'
+export { resolveTaxonomyToSinhala, type TaxonomyTopic } from './taxonomy'
+
+/** No backend taxonomy metadata contract is currently exposed. */
+export const CHAT_TAXONOMY_METADATA = { source: 'local', backendMetadataAvailable: false } as const
+export async function getChatTaxonomy(): Promise<TaxonomyTopic[]> {
+  return LOCAL_TAXONOMY.map(topic => ({ ...topic, aliases: [...topic.aliases] }))
+}
 
 export interface ChemicalEntry {
   name: string
@@ -18,11 +26,11 @@ export interface ChatMessageResponse {
 }
 
 /** POST /api/v1/chat/message — send one turn of the conversation. */
-export async function sendChatMessage(message: string, sessionId: string): Promise<ChatMessageResponse> {
+export async function sendChatMessage(message: string, sessionId: string, signal?: AbortSignal): Promise<ChatMessageResponse> {
   const { data } = await api.post<ChatMessageResponse>('/api/v1/chat/message', {
     message,
     session_id: sessionId,
-  })
+  }, { signal })
   return data
 }
 

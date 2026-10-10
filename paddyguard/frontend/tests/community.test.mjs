@@ -116,7 +116,7 @@ test('voice follow-up payloads remain Sinhala when interface language changes', 
   const { default: FollowUpDialog } = load('components/voice/FollowUpDialog.tsx', {
     'react/jsx-runtime': jsxRuntime,
     '@/i18n/text': { uiText: text => `translated-${text}` },
-    'framer-motion': { motion: { div: 'div' }, AnimatePresence: 'section' },
+    'framer-motion': { motion: { div: 'div' }, AnimatePresence: 'section', useReducedMotion: () => true },
     'lucide-react': { AlertTriangle: 'span' }, '@/components/ui/Button': 'button',
     '@/lib/disease': { formatConfidence: value => `${value * 100}%` },
   })
@@ -154,4 +154,33 @@ test('cancelled profile requests reject instead of updating identity', async () 
   const controller = new AbortController()
   controller.abort()
   await assert.rejects(community.readProfile(controller.signal), error => axios.isCancel(error))
+})
+
+test('Pest detection retains multipart file contract and Gateway authentication', async () => {
+  const { api, useAuthStore, requests } = setup()
+  useAuthStore.getState().setAuth({ id: 'pest-farmer', email: 'qa@example.test', full_name: null, role: 'FARMER' }, 'gateway-access', 'refresh')
+  const { detectPest } = load('lib/pestApi.ts', { './api': api })
+  await detectPest(new File(['image'], 'pest.jpg', { type: 'image/jpeg' }))
+  assert.equal(requests[0].url, '/api/v1/pest/detect')
+  assert.equal(requests[0].headers.Authorization, 'Bearer gateway-access')
+  assert.equal(requests[0].data.get('file').name, 'pest.jpg')
+  assert.equal(requests[0].timeout, 240000)
+})
+
+test('Leaf classification retains multipart image, field data and separate Leaf authentication', async () => {
+  const localStorage = storage(), requests = []
+  const adapter = axios.defaults.adapter
+  axios.defaults.adapter = async config => { requests.push(config); return { data: { case_id: 'leaf-case' }, status: 200, headers: {}, config } }
+  try {
+    const leaf = load('lib/leafApi.ts', { axios }, { localStorage })
+    leaf.setLeafAuth({ token: 'leaf-service-access', username: 'qa-farmer', role: 'USER', name: 'QA Farmer' })
+    const data = await leaf.analyzeLeaf({ file: new File(['image'], 'leaf.jpg', { type: 'image/jpeg' }), field_area_acres: 2, affected_field_percentage: 12, city: 'Gampaha', created_by: 'qa-farmer' })
+    assert.equal(data.case_id, 'leaf-case')
+    assert.equal(requests[0].url, '/api/v1/image/classify')
+    assert.equal(requests[0].headers.Authorization, 'Bearer leaf-service-access')
+    assert.equal(requests[0].data.get('image').name, 'leaf.jpg')
+    assert.equal(requests[0].data.get('field_area_acres'), '2')
+    assert.equal(requests[0].data.get('affected_field_percentage'), '12')
+    assert.equal(requests[0].data.get('created_by'), 'qa-farmer')
+  } finally { axios.defaults.adapter = adapter }
 })

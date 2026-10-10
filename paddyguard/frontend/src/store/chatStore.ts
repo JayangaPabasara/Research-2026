@@ -16,11 +16,18 @@ export interface ArchivedChat {
   sessionId: string
   messages: ChatMessage[]
   archivedAt: string
+  conversationLanguage?: 'si' | 'en'
+  microphoneLanguage?: 'si-LK' | 'en-US'
+  contextUnavailable?: boolean
 }
 
 interface StoredChat {
   sessionId: string
   messages: ChatMessage[]
+  handledHandoffs?: string[]
+  conversationLanguage?: 'si' | 'en'
+  microphoneLanguage?: 'si-LK' | 'en-US'
+  contextUnavailable?: boolean
 }
 
 const STORAGE_KEY = 'paddyguard_chat_sessions'
@@ -137,6 +144,11 @@ function persistHistory(
  */
 
 interface ChatState {
+  updateSessionPreferences: (userId: string, preferences: Pick<StoredChat, 'conversationLanguage' | 'microphoneLanguage' | 'contextUnavailable'>) => void
+  pendingSessions: string[]
+  beginRequest: (sessionId: string) => boolean
+  endRequest: (sessionId: string) => void
+  claimHandoff: (userId: string, handoffId: string) => boolean
   sessions: Record<string, StoredChat>
 
   history: Record<
@@ -206,6 +218,29 @@ interface ChatState {
 
 export const useChatStore =
   create<ChatState>((set, get) => ({
+    updateSessionPreferences: (userId, preferences) => {
+      const current = get().sessions[userId]
+      if (!current) return
+      const sessions = { ...get().sessions, [userId]: { ...current, ...preferences } }
+      persistAll(sessions)
+      set({ sessions })
+    },
+    pendingSessions: [],
+    beginRequest: (sessionId) => {
+      if (get().pendingSessions.includes(sessionId)) return false
+      set({ pendingSessions: [...get().pendingSessions, sessionId] })
+      return true
+    },
+    endRequest: (sessionId) => set({ pendingSessions: get().pendingSessions.filter(id => id !== sessionId) }),
+    claimHandoff: (userId, handoffId) => {
+      get().ensureSession(userId)
+      const current = get().sessions[userId]
+      if (current.handledHandoffs?.includes(handoffId)) return false
+      const sessions = { ...get().sessions, [userId]: { ...current, handledHandoffs: [...(current.handledHandoffs || []), handoffId].slice(-100) } }
+      persistAll(sessions)
+      set({ sessions })
+      return true
+    },
     sessions: loadAll(),
 
     history: loadHistory(),
@@ -278,6 +313,9 @@ export const useChatStore =
         current.messages.length > 0
       ) {
         const archived: ArchivedChat = {
+          conversationLanguage: current.conversationLanguage,
+          microphoneLanguage: current.microphoneLanguage,
+          contextUnavailable: current.contextUnavailable,
           sessionId:
             current.sessionId,
           messages:
@@ -326,6 +364,7 @@ export const useChatStore =
         sessionId:
           newSessionId(),
         messages: [],
+        handledHandoffs: current?.handledHandoffs,
       }
 
       const sessions = {
@@ -430,6 +469,10 @@ export const useChatStore =
       archived
     ) => {
       const continued: StoredChat = {
+        conversationLanguage: archived.conversationLanguage || archived.messages.findLast(message => message.language)?.language,
+        microphoneLanguage: archived.microphoneLanguage || get().sessions[userId]?.microphoneLanguage,
+        contextUnavailable: archived.contextUnavailable,
+        handledHandoffs: get().sessions[userId]?.handledHandoffs,
         sessionId:
           archived.sessionId,
 
@@ -474,6 +517,9 @@ export const useChatStore =
         current.messages.length > 0
       ) {
         const archived: ArchivedChat = {
+          conversationLanguage: current.conversationLanguage,
+          microphoneLanguage: current.microphoneLanguage,
+          contextUnavailable: current.contextUnavailable,
           sessionId:
             current.sessionId,
 
@@ -523,6 +569,7 @@ export const useChatStore =
           newSessionId(),
 
         messages: [],
+        handledHandoffs: current?.handledHandoffs,
       }
 
       const sessions = {

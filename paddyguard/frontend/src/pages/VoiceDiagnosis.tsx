@@ -1,4 +1,8 @@
 import { uiText } from '@/i18n/text'
+import { useTranslation } from 'react-i18next'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import { useVoiceWorkspaceStore } from '@/store/voiceWorkspaceStore'
+import { stopAllAudio } from '@/lib/audioPlayer'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Mic, Square, UploadCloud, Sparkles, History as HistoryIcon, Trash2 } from 'lucide-react'
@@ -28,17 +32,34 @@ const EXAMPLES = [
 ]
 
 export default function VoiceDiagnosis() {
+  const { t } = useTranslation()
+  const user = useAuthStore(s => s.user)
+  const userId = user?.id || 'guest'
+  const saved = useVoiceWorkspaceStore.getState().workspaces[userId]
+  const [confirmNew, setConfirmNew] = useState(false)
+  const requestRef = useRef<AbortController | null>(null)
+  const generationRef = useRef(0)
+
   const [pageTab, setPageTab] = useState<PageTab>('analyze')
-  const [stage, setStage] = useState<Stage>('idle')
-  const [result, setResult] = useState<VoiceDiagnosisResult | null>(null)
+  const [stage, setStage] = useState<Stage>(() => saved ? saved.is_ood ? 'ood' : saved.needs_followup ? 'followup' : 'result' : 'idle')
+  const [result, setResult] = useState<VoiceDiagnosisResult | null>(saved || null)
   const [followupLoading, setFollowupLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recorder = useAudioRecorder()
-  const user = useAuthStore((s) => s.user)
   const addVoiceEntry = useDiagnosisStore((s) => s.addVoiceEntry)
   const voiceHistory = useDiagnosisStore((s) => s.voiceHistory)
   const deleteVoiceEntry = useDiagnosisStore((s) => s.deleteVoiceEntry)
   const myVoiceHistory = voiceHistory.filter((v) => v.userId === user?.id)
+
+  useEffect(() => () => {
+    generationRef.current++
+    requestRef.current?.abort()
+    stopAllAudio()
+  }, [])
+
+  useEffect(() => {
+    if (recorder.error) { toast.error(recorder.error); setStage(result ? result.needs_followup ? 'followup' : result.is_ood ? 'ood' : 'result' : 'idle') }
+  }, [recorder.error, result])
 
   // Novelty 4: Auto-play follow-up question TTS — routed through the shared
   // audio singleton so it can never overlap with the result clip.
@@ -47,12 +68,13 @@ export default function VoiceDiagnosis() {
       const audio = new Audio(`data:audio/mp3;base64,${result.question_tts_b64}`)
       registerAudio(audio)
       const timer = setTimeout(() => audio.play().catch(() => {}), 400)
-      return () => clearTimeout(timer)
+      return () => { clearTimeout(timer); audio.pause() }
     }
   }, [stage, result?.question_tts_b64])
 
   function handleResult(data: VoiceDiagnosisResult) {
     setResult(data)
+    if (user) useVoiceWorkspaceStore.getState().saveWorkspace(user.id, data)
     if (data.is_ood) {
       setStage('ood')
     } else if (data.needs_followup) {
@@ -73,72 +95,97 @@ export default function VoiceDiagnosis() {
     }
   }
 
+  function beginRequest() {
+    requestRef.current?.abort()
+    const controller = new AbortController()
+    requestRef.current = controller
+    const generation = ++generationRef.current
+    return { controller, isCurrent: () => !controller.signal.aborted && generation === generationRef.current }
+  }
+
   async function runDiagnosis(blob: Blob, filename: string) {
+    const request = beginRequest()
     setStage('analysing')
     try {
-      const data = await diagnoseVoice(blob, filename)
-      handleResult(data)
+      const data = await diagnoseVoice(blob, filename, request.controller.signal)
+      if (request.isCurrent()) handleResult(data)
     } catch {
-      toast.error(uiText("රෝග විනිශ්චය අසාර්ථක විය | Diagnosis failed"))
-      setStage('idle')
+      if (!request.isCurrent()) return
+      toast.error(uiText('Diagnosis failed'))
+      setStage(result ? result.needs_followup ? 'followup' : result.is_ood ? 'ood' : 'result' : 'idle')
     }
   }
 
   async function handleStop() {
+    const generation = generationRef.current
     const recording = await recorder.stop()
+    if (generation !== generationRef.current) return
     if (recording) await runDiagnosis(recording.blob, recording.filename)
     else setStage('idle')
   }
 
   async function handleStart() {
+    stopAllAudio()
     setStage('recording')
     await recorder.start()
-    if (recorder.error) {
-      toast.error(recorder.error)
-      setStage('idle')
-    }
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) runDiagnosis(file, file.name)
+    if (file) void runDiagnosis(file, file.name)
     e.target.value = ''
   }
 
   async function handleFollowUpAnswer(answer: string) {
-    if (!result?.session_id) return
-
-    // Every answer goes to the real backend follow-up endpoint — the
-    // classifier decides whether it's confident enough to conclude or
-    // needs another question (see confidence_trajectory in the result).
+    if (!result?.session_id || followupLoading) return
+    const request = beginRequest()
     setFollowupLoading(true)
     try {
-      const data = await submitFollowUp(answer, result.session_id)
-      handleResult(data)
+      const data = await submitFollowUp(answer, result.session_id, request.controller.signal)
+      if (request.isCurrent()) handleResult(data)
     } catch {
-      toast.error(uiText("පිළිතුර යැවීම අසාර්ථක විය | Failed to submit answer"))
+      if (request.isCurrent()) toast.error(uiText('Failed to submit answer'))
     } finally {
-      setFollowupLoading(false)
+      if (request.isCurrent()) setFollowupLoading(false)
     }
   }
 
-  function reset() {
+  function resetWorkspace() {
+    generationRef.current++
+    requestRef.current?.abort()
+    recorder.cancel()
+    stopAllAudio()
+    useVoiceWorkspaceStore.getState().clearWorkspace(userId)
     setResult(null)
     setStage('idle')
+    setFollowupLoading(false)
+    setConfirmNew(false)
+    setPageTab('analyze')
   }
 
-  const inputDisabled = stage === 'analysing'
+  function reset() {
+    if (result || stage === 'recording' || stage === 'analysing') setConfirmNew(true)
+    else resetWorkspace()
+  }
+
+  const inputDisabled = stage === 'analysing' || followupLoading || Boolean(result)
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="pg-voice mx-auto max-w-6xl">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-xl text-xs leading-relaxed text-forest-muted">{t('voiceWorkspaceHelp')}</p>
+        <Button variant="outline" onClick={reset}>{t('newDiagnosis')}</Button>
+      </div>
+      <ConfirmDialog isOpen={confirmNew} title={t('newDiagnosisTitle')} message={t('newDiagnosisHelp')} confirmLabel={t('newDiagnosis')} onConfirm={resetWorkspace} onCancel={() => setConfirmNew(false)} />
       {/* Tab bar: switch between Voice Analyze and History */}
-      <div className="mb-6 flex gap-2 rounded-xl bg-beige p-1">
+      <div className="pg-segmented mb-6 flex gap-2 rounded-xl bg-beige p-1" role="tablist" aria-label={uiText("Voice Analyze")}>
         {([
           { key: 'analyze' as PageTab, label: uiText("Voice Analyze"), labelSi: uiText("විශ්ලේෂණය"), icon: Mic },
           { key: 'history' as PageTab, label: uiText("History"), labelSi: uiText("ඉතිහාසය"), icon: HistoryIcon },
         ]).map((t) => (
           <button
             key={t.key}
+            role="tab" aria-selected={pageTab === t.key}
             onClick={() => setPageTab(t.key)}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm
               font-semibold transition-colors
@@ -191,6 +238,7 @@ export default function VoiceDiagnosis() {
                   <span className="absolute h-40 w-40 animate-recording-ring rounded-full border-2 border-red-400" />
                   <button
                     onClick={handleStop}
+                    aria-label={uiText("Stop voice input")}
                     className="relative flex h-32 w-32 items-center justify-center rounded-full border-4 border-red-soft bg-red-50 shadow-2xl"
                   >
                     <Square className="h-10 w-10 text-red-soft" />
@@ -232,6 +280,7 @@ export default function VoiceDiagnosis() {
               <div className="flex flex-col items-center gap-3 py-4">
                 <button
                   onClick={handleStart}
+                  aria-label={uiText("Start voice input")}
                   disabled={inputDisabled}
                   className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-forest bg-white shadow-2xl transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >

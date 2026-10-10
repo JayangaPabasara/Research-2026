@@ -38,3 +38,23 @@ body {
 }
 html[lang="si"] body { font-family: 'Noto Sans Sinhala', sans-serif; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+
+.pg-treatment { gap: 0; }
+.pg-treatment .pg-segmented, .pg-voice .pg-segmented { border: 1px solid #e8dfc8; }
+.pg-segmented button { transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+.pg-chat-message { animation: pg-message-in 180ms ease-out; overflow-wrap: anywhere; }
+.pg-chat-message p, .pg-chat-message li { line-height: 1.8; }
+.pg-chat-message [lang="si"] { font-family: 'Noto Sans Sinhala', sans-serif; }
+.pg-history-card { border: 1px solid #e8dfc8; transition: border-color 180ms ease, box-shadow 180ms ease; }
+.pg-history-card:hover { border-color: #F4991A; box-shadow: 0 4px 18px #344f1f0a; }
+.pg-composer { transition: border-color 180ms ease, box-shadow 180ms ease; }
+.pg-composer:focus-within { border-color: #344f1f; box-shadow: 0 0 0 3px #344f1f12; }
+.pg-treatment button:focus-visible, .pg-voice button:focus-visible { outline: 2px solid #344f1f; outline-offset: 3px; }
+.pg-voice button { transition: background-color 180ms ease, transform 180ms ease; }
+@keyframes pg-message-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 480px) { .pg-treatment .pg-history-card > div { flex-wrap: wrap; } .pg-treatment .pg-chat-message > div:last-child { max-width: calc(100% - 42px); } }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .pg-chat-message { animation: none; }
+  .pg-treatment *, .pg-voice * { transition: none; }
+}

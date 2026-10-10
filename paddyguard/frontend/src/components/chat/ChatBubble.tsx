@@ -2,6 +2,7 @@ import { Sprout, User, MessageCircleQuestion, Volume2, Square } from 'lucide-rea
 import type { ChatMessage } from '@/store/chatStore'
 import { renderLiteMarkdown, stripLiteMarkdown } from '@/lib/markdownLite'
 import DosageCalculator from './DosageCalculator'
+import { uiText } from '@/i18n/text'
 
 interface ChatBubbleProps {
   message: ChatMessage
@@ -22,7 +23,7 @@ export default function ChatBubble({
   const canSpeak = !isUser && ttsSupported && onToggleSpeak && stripLiteMarkdown(message.content).length > 0
 
   return (
-    <div className={`flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`pg-chat-message flex items-start gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
           isUser ? 'bg-forest' : 'bg-amber'
@@ -32,7 +33,7 @@ export default function ChatBubble({
       </div>
 
       <div className={`flex max-w-[85%] flex-col gap-1.5 sm:max-w-[75%] ${isUser ? 'items-end' : 'items-start'}`}>
-        <div
+        <div lang={message.language}
           className={`rounded-2xl px-4 py-3 text-sm shadow-sm ${
             isUser
               ? 'rounded-tr-sm bg-forest text-white'
@@ -64,7 +65,7 @@ export default function ChatBubble({
           {canSpeak && (
             <button
               onClick={onToggleSpeak}
-              aria-label={speaking ? 'Stop reading aloud' : 'Read reply aloud'}
+              aria-label={uiText(speaking ? 'Stop reading aloud' : 'Read reply aloud')}
               className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                 speaking
                   ? 'border-forest bg-forest text-white'
@@ -72,7 +73,7 @@ export default function ChatBubble({
               }`}
             >
               {speaking ? <Square className="w-3 h-3" /> : <Volume2 className="h-3.5 w-3.5" />}
-              {speaking ? 'Stop' : 'Listen'}
+              {uiText(speaking ? 'Stop' : 'Listen')}
             </button>
           )}
         </div>

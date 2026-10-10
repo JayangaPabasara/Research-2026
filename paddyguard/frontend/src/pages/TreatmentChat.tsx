@@ -1,4 +1,8 @@
 import { uiText } from '@/i18n/text'
+import { useTranslation } from 'react-i18next'
+import { findTaxonomyTopic } from '@/lib/taxonomy'
+import { isExpiredChatSession } from '@/lib/chatRecovery'
+import type { TreatmentHandoff } from '@/lib/treatmentHandoff'
 import {
   useCallback,
   useEffect,
@@ -35,7 +39,8 @@ import TypingIndicator from '@/components/chat/TypingIndicator'
 import {
   sendChatMessage,
   getChatTopics,
-  clearChatSession,
+  getChatTaxonomy,
+  type TaxonomyTopic,
 } from '@/lib/chatApi'
 
 import { stripLiteMarkdown } from '@/lib/markdownLite'
@@ -59,7 +64,7 @@ import {
   useSpeechSynthesis,
 } from '@/hooks/useSpeechSynthesis'
 
-import { formatDate } from '@/lib/disease'
+import { formatDate, formatInitialAdvisorMessage } from '@/lib/disease'
 
 type Tab = 'chat' | 'history'
 
@@ -99,6 +104,13 @@ function chatPreview(
 }
 
 export default function TreatmentChat() {
+  const { t, i18n } = useTranslation()
+  const [conversationLang, setConversationLang] = useState<'si' | 'en'>(() => i18n.language === 'en' ? 'en' : 'si')
+  const [taxonomy, setTaxonomy] = useState<TaxonomyTopic[]>([])
+  const [restored, setRestored] = useState(false)
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const pendingSessions = useChatStore(state => state.pendingSessions)
   /*
    * ==================================================
    * AUTH
@@ -188,8 +200,9 @@ export default function TreatmentChat() {
   const [input, setInput] =
     useState('')
 
-  const [sending, setSending] =
+  const [sendingLocal, setSending] =
     useState(false)
+  const sending = sendingLocal || Boolean(session && pendingSessions.includes(session.sessionId))
 
   const [topics, setTopics] =
     useState<string[]>([])
@@ -207,7 +220,7 @@ export default function TreatmentChat() {
     useState(false)
 
   const [micLang, setMicLang] =
-    useState<MicLang>('en-US')
+    useState<MicLang>(() => i18n.language === 'en' ? 'en-US' : 'si-LK')
 
   const [
     autoSpeak,
@@ -288,15 +301,15 @@ export default function TreatmentChat() {
    */
 
   async function handleSend(
-    text?: string
+    text?: string,
+    newHandoff = false
   ): Promise<void> {
     const content = (
       text ?? input
     ).trim()
 
     if (
-      !content ||
-      sending
+      !content
     ) {
       return
     }
@@ -313,13 +326,16 @@ export default function TreatmentChat() {
         .getState()
         .sessions[userId]
 
-    if (!currentSession) {
+    if (!currentSession || (sessionExpired && !newHandoff)) {
       toast.error(
         uiText("Chat session is not ready. Please try again.")
       )
 
       return
     }
+
+    if (!useChatStore.getState().beginRequest(currentSession.sessionId)) return
+    const requestIsCurrent = () => useChatStore.getState().sessions[userId]?.sessionId === currentSession.sessionId
 
     /*
      * Stop microphone.
@@ -348,6 +364,7 @@ export default function TreatmentChat() {
 
     setInput('')
     setSending(true)
+    setSendError(null)
 
     try {
       /*
@@ -363,6 +380,7 @@ export default function TreatmentChat() {
           currentSession.sessionId
         )
 
+      if (!requestIsCurrent()) return
       const language =
         normalizeSpeechLanguage(
           response.language
@@ -405,8 +423,14 @@ export default function TreatmentChat() {
     } catch (
       error: unknown
     ) {
-      let errorMessage =
-        'Could not reach the treatment advisor. Please try again.'
+      if (!requestIsCurrent()) return
+      if (isExpiredChatSession(error)) {
+        setSessionExpired(true)
+        useChatStore.getState().updateSessionPreferences(userId, { contextUnavailable: true })
+        toast.error(t('expiredChatHelp'))
+        return
+      }
+      let errorMessage = t('chatFailed')
 
       /*
        * Read API error detail.
@@ -444,32 +468,21 @@ export default function TreatmentChat() {
       toast.error(
         errorMessage
       )
+      setSendError(errorMessage)
 
-      /*
-       * Add error message to chat.
-       */
-
-      addMessage(userId, {
-        role: 'assistant',
-        content:
-          "⚠️ Sorry, I couldn't process that right now. Please check your connection and try again. | " +
-          'සමාවන්න, දැනට එය සැකසිය නොහැක. නැවත උත්සාහ කරන්න.',
-        inScope: true,
-        language: 'en',
-      })
+      // Keep received advice unchanged. Errors are UI state, not fabricated replies.
     } finally {
+      useChatStore.getState().endRequest(currentSession.sessionId)
       setSending(false)
     }
   }
 
   /*
    * ==================================================
-   * INITIALIZE NEW CHAT
+   * RESTORE CHAT OR HANDLE A NEW DETECTION
    *
-   * Every time TreatmentChat is opened for a user,
-   * start with a fresh conversation.
-   *
-   * Existing conversation is archived first.
+   * Restore the active local session on ordinary navigation.
+   * A new intentional detection handoff starts a fresh session.
    *
    * If a deep link brought an initialMessage (e.g. from
    * the Leaf/Pest "Ask Treatment Advisor" button), send
@@ -479,42 +492,47 @@ export default function TreatmentChat() {
    */
 
   useEffect(() => {
-    if (
-      initializedUserRef.current ===
-      userId
-    ) {
+    const store = useChatStore.getState()
+    const state = location.state as Partial<TreatmentHandoff> | null
+    const detection = state?.source === 'detection' || Boolean(state?.initialTopic || state?.initialMessage)
+    if (detection) {
+      const id = state?.handoffId || location.key
+      const claimed = store.claimHandoff(userId, id)
+      navigate(location.pathname, { replace: true, state: {} })
+      initializedUserRef.current = userId
+      if (!claimed) return
+      setMicLang('si-LK')
+      setConversationLang('si')
+      setRestored(false)
+      setSendError(null)
+      setSessionExpired(false)
+      startNewSession(userId)
+      store.updateSessionPreferences(userId, { conversationLanguage: 'si', microphoneLanguage: 'si-LK', contextUnavailable: false })
+      setTab('chat')
+      setSelectedChat(null)
+      setInput('')
+      const message = state?.initialTopic
+        ? formatInitialAdvisorMessage(state.initialTopic, 'si', state.detectionType === 'pest')
+        : state?.initialMessage
+      if (message) void handleSend(message, true)
       return
     }
-
-    initializedUserRef.current =
-      userId
-
-    startNewSession(userId)
-
+    if (initializedUserRef.current === userId) return
+    initializedUserRef.current = userId
+    setRestored(Boolean(store.sessions[userId]?.messages.length))
+    store.ensureSession(userId)
+    const active = useChatStore.getState().sessions[userId]
+    const questionLanguage = active.conversationLanguage || conversationLang
+    const microphoneLanguage = active.microphoneLanguage || micLang
+    setConversationLang(questionLanguage)
+    setMicLang(microphoneLanguage)
+    store.updateSessionPreferences(userId, { conversationLanguage: questionLanguage, microphoneLanguage })
     setTab('chat')
     setSelectedChat(null)
     setInput('')
-    setSending(false)
-
-    const initialMessage = (
-      location.state as
-        | { initialMessage?: string }
-        | null
-    )?.initialMessage
-
-    if (initialMessage) {
-      navigate(location.pathname, {
-        replace: true,
-        state: {},
-      })
-
-      void handleSend(initialMessage)
-    }
+    setSessionExpired(Boolean(active.contextUnavailable))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    userId,
-    startNewSession,
-  ])
+  }, [userId, startNewSession, location.state, location.key])
 
   /*
    * ==================================================
@@ -559,6 +577,7 @@ export default function TreatmentChat() {
   useEffect(() => {
     let active = true
 
+    void getChatTaxonomy().then(result => { if (active) setTaxonomy(result) })
     getChatTopics()
       .then((result) => {
         if (!active) {
@@ -602,12 +621,9 @@ export default function TreatmentChat() {
 
     element.scrollTo({
       top: element.scrollHeight,
-      behavior: 'smooth',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
     })
-  }, [
-    session?.messages.length,
-    sending,
-  ])
+  }, [session, sending])
 
   /*
    * ==================================================
@@ -648,11 +664,11 @@ export default function TreatmentChat() {
 
   function handleToggleMicLang(): void {
     setMicLang(
-      (language) =>
-        language ===
-        'en-US'
-          ? 'si-LK'
-          : 'en-US'
+      (language) => {
+        const next = language === 'en-US' ? 'si-LK' : 'en-US'
+        useChatStore.getState().updateSessionPreferences(userId, { microphoneLanguage: next })
+        return next
+      }
     )
   }
 
@@ -682,15 +698,18 @@ export default function TreatmentChat() {
       userId,
       archived
     )
+    const continued = useChatStore.getState().sessions[userId]
+    setConversationLang(continued.conversationLanguage || conversationLang)
+    setMicLang(continued.microphoneLanguage || micLang)
+    setRestored(true)
+    setSessionExpired(Boolean(continued.contextUnavailable))
 
     setTab('chat')
     setSelectedChat(null)
     setInput('')
     setSending(false)
 
-    toast.success(
-      uiText("Conversation restored. You can continue chatting.")
-    )
+    toast.success(uiText('Conversation restored. You can continue chatting.'))
   }
 
   /*
@@ -723,36 +742,17 @@ export default function TreatmentChat() {
       recognition.stop()
     }
 
-    try {
-      /*
-       * Clear backend conversation.
-       *
-       * This does NOT affect local History because
-       * the local history is handled by resetSession.
-       */
-
-      await clearChatSession(
-        session.sessionId
-      )
-    } catch {
-      /*
-       * Backend cleanup is non-fatal.
-       */
-    } finally {
-      /*
-       * Archive current chat and create new session.
-       */
-
-      resetSession(userId)
-
-      setInput('')
-      setSending(false)
-      setSelectedChat(null)
-      setTab('chat')
-
-      setResetting(false)
-      setConfirmReset(false)
-    }
+    resetSession(userId)
+    setSendError(null)
+    useChatStore.getState().updateSessionPreferences(userId, { conversationLanguage: conversationLang, microphoneLanguage: micLang, contextUnavailable: false })
+    setRestored(false)
+    setSessionExpired(false)
+    setInput('')
+    setSending(false)
+    setSelectedChat(null)
+    setTab('chat')
+    setResetting(false)
+    setConfirmReset(false)
   }
 
   /*
@@ -781,7 +781,7 @@ export default function TreatmentChat() {
    */
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-7.5rem)] max-w-3xl flex-col">
+    <div className="pg-treatment mx-auto flex h-[calc(100dvh-7.5rem)] min-h-[440px] max-w-4xl flex-col">
 
       {/* ============================================
           HEADER
@@ -821,10 +821,11 @@ export default function TreatmentChat() {
                   )
                 }}
                 title={
-                  autoSpeak
+                  uiText(autoSpeak
                     ? 'Auto-read replies: on'
-                    : 'Auto-read replies: off'
+                    : 'Auto-read replies: off')
                 }
+                aria-label={uiText(autoSpeak ? 'Auto-read replies: on' : 'Auto-read replies: off')}
               >
                 {autoSpeak ? (
                   <Volume2 className="h-3.5 w-3.5" />
@@ -856,14 +857,33 @@ export default function TreatmentChat() {
 
       </div>
 
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-forest-muted">
+        <label className="flex items-center gap-2">{t('conversationLanguage')}
+          <select className="rounded-lg border border-beige bg-white p-2 text-forest" value={conversationLang} onChange={e => {
+            const language = e.target.value as 'si' | 'en'
+            setConversationLang(language)
+            useChatStore.getState().updateSessionPreferences(userId, { conversationLanguage: language })
+          }}>
+            <option value="si">සිංහල</option><option value="en">English</option>
+          </select>
+        </label>
+        <span>{t('replyLanguageHelp')}</span>
+      </div>
+      {sendError && <p role="alert" className="mb-3 rounded-xl bg-red-soft/10 p-3 text-xs leading-relaxed text-red-soft">{sendError}</p>}
+      {(restored || sessionExpired) && <div role="status" className="mb-3 rounded-xl border border-amber/30 bg-amber-light/40 p-3 text-xs leading-relaxed text-forest">
+        <p>{t(sessionExpired ? 'expiredChatHelp' : 'restoredChatHelp')}</p>
+        <Button className="mt-2" size="sm" variant="outline" onClick={() => setConfirmReset(true)}>{uiText('New chat')}</Button>
+      </div>}
+
       {/* ============================================
           TAB NAVIGATION
           ============================================ */}
 
-      <div className="flex gap-2 p-1 mb-3 rounded-xl bg-beige">
+      <div className="pg-segmented flex gap-2 p-1 mb-3 rounded-xl bg-beige" role="tablist" aria-label={uiText("Treatment Advisor") }>
 
         <button
           type="button"
+          role="tab" aria-selected={tab === 'chat'}
           onClick={() =>
             setTab('chat')
           }
@@ -879,6 +899,7 @@ export default function TreatmentChat() {
 
         <button
           type="button"
+          role="tab" aria-selected={tab === 'history'}
           onClick={() =>
             setTab('history')
           }
@@ -936,17 +957,18 @@ export default function TreatmentChat() {
 
                 <TopicChips
                   topics={topics}
+                  language={conversationLang}
+                  taxonomy={taxonomy}
                   onSelect={(
                     topic
                   ) => {
-                    void handleSend(
-                      topic
-                    )
+                    void handleSend(formatInitialAdvisorMessage(topic, conversationLang, /planthopper|midge|folder|hispa|borer/i.test(findTaxonomyTopic(topic, taxonomy)?.canonical || topic)))
                   }}
                   disabled={
                     sending
                   }
                 />
+                <p className="max-w-sm text-[11px] text-forest-muted">{t('localTaxonomyHelp')}</p>
 
               </div>
 
@@ -1025,9 +1047,7 @@ export default function TreatmentChat() {
               onSend={() => {
                 void handleSend()
               }}
-              disabled={
-                sending
-              }
+              disabled={sending || sessionExpired}
               micSupported={
                 recognition.supported
               }
@@ -1077,7 +1097,7 @@ export default function TreatmentChat() {
                     entry.sessionId
                   }
                   hoverable
-                  className="cursor-pointer"
+                  className="pg-history-card cursor-pointer"
                 >
 
                   <div className="flex items-center justify-between gap-3">

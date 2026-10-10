@@ -104,7 +104,7 @@ export default function App() {
         path="/voice"
         element={
           <Protected allow={['FARMER']}>
-            <VoiceDiagnosis />
+            <VoiceDiagnosis key={id} />
           </Protected>
         }
       />
@@ -135,7 +135,7 @@ export default function App() {
         path="/chat"
         element={
           <Protected allow={['FARMER']}>
-            <TreatmentChat />
+            <TreatmentChat key={id} />
           </Protected>
         }
       />

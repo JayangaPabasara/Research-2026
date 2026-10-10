@@ -4,9 +4,13 @@ import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import { diseaseColor, diseaseSinhalaName, formatConfidence, severityLabel } from '@/lib/disease'
 import type { AnalyzeResult } from '@/lib/leafApi'
+import { useNavigate } from 'react-router-dom'
+import Button from '@/components/ui/Button'
+import { canTreatLeaf, createTreatmentHandoff } from '@/lib/treatmentHandoff'
 
 export default function ResultCard({ result }: { result: AnalyzeResult }) {
   const { prediction } = result
+  const navigate = useNavigate()
 
   if (prediction.status === 'OOD') {
     return (
@@ -51,6 +55,12 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
             {uiText("Low confidence — this case has been queued for expert review.")}</div>
         )}
       </Card>
+
+      {canTreatLeaf(prediction.prediction, prediction.status) && (
+        <Button variant="outline" className="w-full" onClick={() => navigate('/chat', {
+          state: createTreatmentHandoff(prediction.prediction, 'disease'),
+        })}>{uiText('ප්‍රතිකාර | Treatment')}</Button>
+      )}
 
       {prediction.gradcam_base64 && (
         <Card>

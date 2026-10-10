@@ -1,4 +1,5 @@
 import { uiText } from '@/i18n/text'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Bug, CheckCircle2, Info, MessageCircle, ScanSearch, ShieldAlert } from 'lucide-react'
 import Card from '@/components/ui/Card'
@@ -6,6 +7,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { formatConfidence } from '@/lib/disease'
 import type { PestDetectionResult } from '@/lib/pestApi'
+import { canTreatPest, createTreatmentHandoff } from '@/lib/treatmentHandoff'
 
 function sourceLabel(source: PestDetectionResult['source']) {
   switch (source) {
@@ -23,6 +25,7 @@ function sourceLabel(source: PestDetectionResult['source']) {
 }
 
 export default function PestResult({ result }: { result: PestDetectionResult }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const quality = result.quality
 
@@ -81,7 +84,7 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
             <div className="mb-2 flex items-center gap-2">
               <Bug className="h-5 w-5 shrink-0 text-amber" />
               <Badge tone={result.status === 'known' ? 'green' : 'amber'}>
-                {result.status === 'known' ? 'Known pest' : 'Needs verification'}
+                {t(result.status === 'known' ? 'knownPest' : 'verifyPest')}
               </Badge>
             </div>
             <h3 className="break-words text-2xl font-bold capitalize text-forest">
@@ -94,7 +97,7 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
               {formatConfidence(result.confidence)}
             </strong>
             <span className="text-[11px] text-forest-muted">
-              {result.source === 'few_shot' ? 'similarity' : 'confidence'}
+              {t(result.source === 'few_shot' ? 'similarity' : 'confidence')}
             </span>
           </div>
         </div>
@@ -144,19 +147,17 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
         <InfoCard text={uiText("Grad-CAM is unavailable for this result because the image was rejected or treated as a hard unknown.")} />
       )}
 
-      <Button
+      {canTreatPest(result) && <Button
         variant="outline"
         className="w-full"
         onClick={() =>
           navigate('/chat', {
-            state: {
-              initialMessage: `Tell me about treatment for ${result.prediction}`,
-            },
+            state: createTreatmentHandoff(result.prediction, 'pest'),
           })
         }
       >
         <MessageCircle className="h-4 w-4" />
-        {uiText("ප්‍රතිකාර | Treatment")}</Button>
+        {uiText("ප්‍රතිකාර | Treatment")}</Button>}
     </div>
   )
 }
@@ -166,6 +167,7 @@ function QualityCard({
 }: {
   quality: PestDetectionResult['quality']
 }) {
+  const { t } = useTranslation()
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
@@ -175,7 +177,7 @@ function QualityCard({
             ? 'bg-green-soft/10 text-green-soft'
             : 'bg-red-soft/10 text-red-soft'
         }`}>
-          {quality.passed ? 'Acceptable' : 'Needs better image'}
+          {t(quality.passed ? 'acceptable' : 'betterImage')}
         </span>
       </div>
 

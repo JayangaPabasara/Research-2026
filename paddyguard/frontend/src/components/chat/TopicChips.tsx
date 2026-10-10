@@ -1,12 +1,15 @@
 import { Bug, Leaf } from 'lucide-react'
+import { resolveTaxonomyToSinhala, type TaxonomyTopic } from '@/lib/chatApi'
 
 interface TopicChipsProps {
   topics: string[]
   onSelect: (topic: string) => void
   disabled?: boolean
+  language?: 'si' | 'en'
+  taxonomy?: TaxonomyTopic[]
 }
 
-export default function TopicChips({ topics, onSelect, disabled }: TopicChipsProps) {
+export default function TopicChips({ topics, onSelect, disabled, language, taxonomy }: TopicChipsProps) {
   if (!topics.length) return null
 
   return (
@@ -22,7 +25,7 @@ export default function TopicChips({ topics, onSelect, disabled }: TopicChipsPro
             className="flex items-center gap-1.5 rounded-full border border-beige bg-white px-3.5 py-2 text-sm font-medium text-forest shadow-sm transition-colors hover:border-amber hover:bg-amber-light disabled:opacity-50"
           >
             <Icon className="h-3.5 w-3.5 text-forest-muted" />
-            {topic}
+            {language === 'si' ? resolveTaxonomyToSinhala(topic, taxonomy) : topic}
           </button>
         )
       })}

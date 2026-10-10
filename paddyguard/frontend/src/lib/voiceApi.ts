@@ -40,14 +40,14 @@ export interface VoiceDiagnosisResult {
   } | null
 }
 
-export async function diagnoseVoice(audio: Blob, filename: string): Promise<VoiceDiagnosisResult> {
+export async function diagnoseVoice(audio: Blob, filename: string, signal?: AbortSignal): Promise<VoiceDiagnosisResult> {
   const form = new FormData()
   form.append('audio', audio, filename)
-  const { data } = await api.post('/api/v1/voice/diagnose', form)
+  const { data } = await api.post('/api/v1/voice/diagnose', form, { signal })
   return data
 }
 
-export async function submitFollowUp(answer: string, sessionId: string): Promise<VoiceDiagnosisResult> {
-  const { data } = await api.post('/api/v1/voice/followup', { answer, session_id: sessionId })
+export async function submitFollowUp(answer: string, sessionId: string, signal?: AbortSignal): Promise<VoiceDiagnosisResult> {
+  const { data } = await api.post('/api/v1/voice/followup', { answer, session_id: sessionId }, { signal })
   return data
 }

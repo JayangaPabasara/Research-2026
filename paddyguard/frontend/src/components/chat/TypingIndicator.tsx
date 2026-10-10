@@ -1,8 +1,9 @@
 import { Sprout } from 'lucide-react'
+import { uiText } from '@/i18n/text'
 
 export default function TypingIndicator() {
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="flex items-start gap-2.5" role="status" aria-label={uiText('Loading…')}>
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber">
         <Sprout className="h-4 w-4 text-white" />
       </div>

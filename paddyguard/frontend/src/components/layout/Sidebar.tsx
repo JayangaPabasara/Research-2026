@@ -10,6 +10,7 @@ import {
   Leaf,
   Bug,
   MessageCircle,
+  Sparkles,
   Clock,
   CheckSquare,
   BarChart2,
@@ -51,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     to: '/chat',
     label: 'ප්‍රතිකාර | Treatment',
-    icon: MessageCircle,
+    icon: Sparkles,
     allow: ['FARMER'],
   },
   { to: '/history', label: 'ඉතිහාසය | History', icon: Clock, allow: ['FARMER', 'EXPERT', 'SUPER_ADMIN'] },

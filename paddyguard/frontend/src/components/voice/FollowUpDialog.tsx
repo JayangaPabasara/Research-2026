@@ -1,5 +1,5 @@
 import { uiText } from '@/i18n/text'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { formatConfidence } from '@/lib/disease'
@@ -25,20 +25,21 @@ export default function FollowUpDialog({
   onSkip,
   loading = false,
 }: FollowUpDialogProps) {
+  const reducedMotion = useReducedMotion()
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-end justify-center">
         <motion.div
           className="absolute inset-0 bg-black/30"
-          initial={{ opacity: 0 }}
+          initial={reducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           onClick={onSkip}
         />
         <motion.div
           className="relative w-full max-w-lg rounded-t-3xl bg-white p-6 shadow-2xl"
-          initial={{ y: 300 }}
+          initial={reducedMotion ? false : { y: 300 }}
           animate={{ y: 0 }}
-          transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+          transition={reducedMotion ? { duration: 0 } : { type: 'spring', damping: 28, stiffness: 300 }}
         >
           <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-beige" />
 

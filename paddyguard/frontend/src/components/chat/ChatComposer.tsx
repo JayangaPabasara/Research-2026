@@ -32,7 +32,7 @@ export default function ChatComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault()
       if (value.trim() && !disabled) onSend()
     }
@@ -55,12 +55,13 @@ export default function ChatComposer({
         </p>
       )}
 
-      <div className="flex items-end gap-2 rounded-2xl border border-beige bg-white p-2 shadow-sm">
+      <div className="pg-composer flex items-end gap-1 sm:gap-2 rounded-2xl border border-beige bg-white p-2 shadow-sm">
         {micSupported && (
           <button
             onClick={onToggleMicLang}
             disabled={listening}
             title={uiText("Voice input language")}
+            aria-label={uiText('Voice input language')}
             className="flex h-10 shrink-0 items-center justify-center rounded-xl border border-beige px-2 text-xs font-bold text-forest-muted transition-colors hover:border-forest-muted disabled:opacity-50"
           >
             {micLang === 'si-LK' ? 'සිං' : 'EN'}
@@ -74,15 +75,16 @@ export default function ChatComposer({
           onKeyDown={handleKeyDown}
           disabled={disabled}
           rows={1}
+          aria-label={uiText('Send message')}
           placeholder={uiText("ප්‍රශ්නයක් අසන්න | Ask about a rice disease or pest...")}
-          className="font-sinhala max-h-[120px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-forest placeholder:text-forest-muted/60 focus:outline-none disabled:opacity-60"
+          className="font-sinhala min-w-0 max-h-[120px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-forest placeholder:text-forest-muted/60 focus:outline-none disabled:opacity-60"
         />
 
         {micSupported && (
           <button
             onClick={onMicToggle}
             disabled={disabled}
-            aria-label={listening ? 'Stop voice input' : 'Start voice input'}
+            aria-label={uiText(listening ? 'Stop voice input' : 'Start voice input')}
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all active:scale-95 disabled:opacity-50 ${
               listening ? 'animate-pulse-mic bg-red-soft text-white' : 'bg-beige text-forest hover:bg-beige/70'
             }`}

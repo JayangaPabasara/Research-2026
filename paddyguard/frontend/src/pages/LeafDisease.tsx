@@ -24,6 +24,7 @@ import { analyzeLeaf, deleteCase, getCases, getUserHistory, getLeafAuth } from '
 import type { AnalyzeResult, CaseSummary } from '@/lib/leafApi'
 import { useAuthStore } from '@/store/authStore'
 import { leafTranslations } from '@/lib/leafTranslations'
+import { canTreatLeaf, createTreatmentHandoff } from '@/lib/treatmentHandoff'
 
 import '@/components/leaf/leafStyles.css'
 
@@ -658,19 +659,17 @@ export default function LeafDisease() {
                         </div>
                       )}
 
-                      <Button
+                      {canTreatLeaf(result.prediction.prediction, result.prediction.status) && <Button
                         variant="outline"
                         className="w-full"
                         onClick={() =>
                           navigate('/chat', {
-                            state: {
-                              initialMessage: `Tell me about treatment for ${result.prediction.prediction}`,
-                            },
+                            state: createTreatmentHandoff(result.prediction.prediction, 'disease'),
                           })
                         }
                       >
                         <MessageCircle className="h-4 w-4" />
-                        {uiText("ප්‍රතිකාර | Treatment")}</Button>
+                        {uiText("ප්‍රතිකාර | Treatment")}</Button>}
 
                       <WeatherContext
                         caseId={result.case_id}

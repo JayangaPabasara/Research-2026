@@ -87,3 +87,41 @@ test('admin guard withholds private content until a fresh backend identity is ve
   assert.doesNotMatch(markup, /private dashboard/)
   client.clear()
 })
+
+test('global Sinhala/English switching renders all primary pages without a second language key', async () => {
+  modules.clear()
+  const auth = load(path.join(root, 'store/authStore.ts')).useAuthStore
+  auth.getState().setAuth({ id: 'language-farmer', email: 'qa@example.test', full_name: null, role: 'FARMER' }, 'synthetic', 'synthetic')
+  const chat = load(path.join(root, 'store/chatStore.ts')).useChatStore
+  chat.getState().ensureSession('language-farmer')
+  const language = load(path.join(root, 'i18n/index.ts')).default
+  for (const page of ['VoiceDiagnosis', 'LeafDisease', 'PestDetection', 'TreatmentChat', 'History', 'Profile', 'Feedback', 'Login', 'Register', 'SystemAdmin']) {
+    const Component = load(path.join(root, `pages/${page}.tsx`)).default
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    await language.changeLanguage('en')
+    const english = render(Component, {}, client)
+    await language.changeLanguage('si')
+    const sinhala = render(Component, {}, client)
+    assert.notEqual(english, sinhala, `${page} must update its interface language`)
+    assert.equal(localStorage.getItem('paddyguard_language'), 'si')
+    assert.equal(localStorage.getItem('paddyguard_app_lang'), null)
+    client.clear()
+  }
+  const before = chat.getState().sessions['language-farmer'].sessionId
+  await language.changeLanguage('en')
+  assert.equal(chat.getState().sessions['language-farmer'].sessionId, before)
+  auth.getState().logout()
+})
+
+test('received Treatment advice and chemical recommendations remain unchanged on UI language switch', async () => {
+  const language = load(path.join(root, 'i18n/index.ts')).default
+  const Bubble = load(path.join(root, 'components/chat/ChatBubble.tsx')).default
+  const message = { id: 'advice', role: 'assistant', content: 'Original English advice: use the supplied instructions.', language: 'en', timestamp: '2026-10-10T00:00:00Z', chemicals: [{ name: 'Original chemical name', dose_per_liter_water: '1 ml', coverage_per_liter_mixture_acres: '0.1', coverage_per_liter_mixture_hectares: '0.04' }] }
+  for (const lang of ['si', 'en']) {
+    await language.changeLanguage(lang)
+    const markup = render(Bubble, { message })
+    assert.match(markup, /Original English advice: use the supplied instructions/)
+    assert.match(markup, /Original chemical name/)
+    assert.match(markup, /lang="en"/)
+  }
+})

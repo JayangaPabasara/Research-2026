@@ -1,4 +1,5 @@
 import i18n from '@/i18n'
+import { findTaxonomyTopic, resolveTaxonomyToSinhala } from './taxonomy'
 export interface DiseaseInfo {
   en: string
   si: string
@@ -10,6 +11,11 @@ const DISEASE_TABLE: Record<string, DiseaseInfo> = {
   'leaf blast': { en: 'Leaf Blast', si: 'කොල පාළු රෝගය', color: '#F4991A' },
   'brown spot': { en: 'Brown Spot', si: 'දුඹුරු පුල්ලි රෝගය', color: '#8B4513' },
   healthy: { en: 'Healthy', si: 'නීරෝගී', color: '#27AE60' },
+  'brown planthopper': { en: 'Brown Planthopper', si: 'දුඹුරු මකුණා', color: '#D97706' },
+  'rice gall midge': { en: 'Rice Gall Midge', si: 'ගොයම් මකුණා', color: '#4B5563' },
+  'rice leaf folder': { en: 'Rice Leaf Folder', si: 'කොළ නවන පණුවා', color: '#059669' },
+  'rice hispa': { en: 'Rice Hispa', si: 'හිස්පා පණුවා', color: '#DC2626' },
+  'rice stem borer': { en: 'Rice Stem Borer', si: 'කඳ පණුවා', color: '#EA580C' },
 }
 
 /** Backend disease names arrive as either "Bacterial_Blight" or "Bacterial Blight" — normalize both. */
@@ -20,7 +26,30 @@ function normalize(name: string): string {
 export function getDiseaseInfo(name: string | null | undefined): DiseaseInfo {
   if (!name) return { en: 'Unknown', si: 'නොදන්නා', color: '#64748B' }
   const key = normalize(name)
-  return DISEASE_TABLE[key] || { en: name, si: name, color: '#64748B' }
+  const existing = DISEASE_TABLE[key]
+  if (existing) return existing
+  const topic = findTaxonomyTopic(name)
+  const aliasColor = topic && DISEASE_TABLE[topic.canonical === 'bacterial leaf blight' ? 'bacterial blight' : topic.canonical]?.color
+  return { en: topic?.english || name, si: resolveTaxonomyToSinhala(name), color: aliasColor || '#64748B' }
+}
+
+export function isHealthyDisease(name: string | null | undefined): boolean {
+  return Boolean(name && normalize(name) === 'healthy')
+}
+
+export function formatInitialAdvisorMessage(topic: string, lang: 'si' | 'en' = 'si', isPest = false): string {
+  const cleanName = topic.replace(/_/g, ' ').trim()
+  if (lang === 'si') {
+    const sinhalaName = resolveTaxonomyToSinhala(topic)
+    // Keep the canonical topic recognizable by the existing backend scope/retrieval
+    // even when its Sinhala keyword differs from the teammate's agricultural term.
+    const reference = findTaxonomyTopic(topic)
+    const topicName = reference && sinhalaName !== cleanName ? `${sinhalaName} (${reference.english})` : sinhalaName
+    return `මගේ වී වගාවේ ${topicName} ${isPest ? 'ඉන්නවා' : 'තියෙනවා'}. ඒ සඳහා ප්‍රතිකාර සහ කළමනාකරණ ක්‍රම මොනවාද?`
+  }
+  return isPest
+    ? `My rice plant has been detected with ${cleanName}. What treatment and management methods do you recommend?`
+    : `What treatment is recommended for ${cleanName} in rice?`
 }
 
 export function diseaseColor(name: string | null | undefined): string {

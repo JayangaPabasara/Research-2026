@@ -2,7 +2,7 @@ import { uiText } from '@/i18n/text'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { CheckCircle2, Play, Pause, MessageCircle } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
@@ -11,6 +11,7 @@ import ConfidenceBar from './ConfidenceBar'
 import { diseaseColor, diseaseSinhalaName, formatConfidence } from '@/lib/disease'
 import { useSpeechAudio } from '@/hooks/useSpeechAudio'
 import type { VoiceDiagnosisResult } from '@/lib/voiceApi'
+import { canTreatLeaf, createTreatmentHandoff } from '@/lib/treatmentHandoff'
 
 interface DiagnosisResultProps {
   result: VoiceDiagnosisResult
@@ -18,6 +19,7 @@ interface DiagnosisResultProps {
 }
 
 export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisResultProps) {
+  const reducedMotion = useReducedMotion()
   const { i18n } = useTranslation()
   const navigate = useNavigate()
   const color = diseaseColor(result.disease)
@@ -34,9 +36,9 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={reducedMotion ? false : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+      transition={{ duration: reducedMotion ? 0 : 0.3 }}
       className="space-y-4"
     >
       <Card>
@@ -122,19 +124,17 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
       <div className="flex gap-3">
         <Button variant="outline" className="flex-1" onClick={onNewDiagnosis}>
           {uiText("නැවත | New Diagnosis")}</Button>
-        <Button
+        {canTreatLeaf(result.disease, result.status) && <Button
           variant="outline"
           className="flex-1"
           onClick={() =>
             navigate('/chat', {
-              state: {
-                initialMessage: `Tell me about treatment for ${result.disease}`,
-              },
+              state: createTreatmentHandoff(result.disease, 'disease'),
             })
           }
         >
           <MessageCircle className="h-4 w-4" />
-          {uiText("ප්‍රතිකාර | Treatment")}</Button>
+          {uiText("ප්‍රතිකාර | Treatment")}</Button>}
       </div>
     </motion.div>
   )

@@ -11,6 +11,7 @@ import type { CaseSummary } from '@/lib/leafApi'
 import { diseaseSinhalaName, formatConfidence, formatDate } from '@/lib/disease'
 import toast from 'react-hot-toast'
 import ActivityTable from '@/components/community/ActivityTable'
+import { useTranslation } from 'react-i18next'
 
 // Scoped Leaf imports
 import UserAnalyticsOverview from '@/components/leaf/UserAnalyticsOverview'
@@ -21,6 +22,7 @@ import '@/components/leaf/leafStyles.css'
 type Tab = 'voice' | 'leaf' | 'pest'
 
 export default function History() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<Tab>('voice')
   const [search, setSearch] = useState('')
   const [leafCases, setLeafCases] = useState<CaseSummary[]>([])
@@ -97,7 +99,7 @@ export default function History() {
 
   return (
     <div className="space-y-4">
-      {user && !isStaff && <ActivityTable />}
+      {user && !isStaff && <><p className="text-sm leading-relaxed text-forest-muted">{t('activityHelp')}</p><ActivityTable /></>}
 
       {/* Tab bar with counts */}
       <div className="flex gap-2 rounded-xl bg-beige p-1">
