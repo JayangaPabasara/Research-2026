@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useState, useRef } from 'react'
 import { checkFineTuneReadiness, startFineTuning, getFineTuneJobs, getFineTuneJobStatus, promoteCandidate, getDeployedModel } from '@/lib/leafApi'
 import type { FineTuneReadiness, FineTuneJob, FineTuneJobStatus } from '@/lib/leafApi'
@@ -107,10 +108,9 @@ export default function FineTuningPanel() {
   return (
     <div className="card space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>In-App Fine-Tuning (Real PyTorch)</h2>
+        <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>{uiText("In-App Fine-Tuning (Real PyTorch)")}</h2>
         <p className="text-xs text-forest-muted">
-          Agricultural admin portal: retrain your classifier models using live verified crop data directly.
-        </p>
+          {uiText("Agricultural admin portal: retrain your classifier models using live verified crop data directly.")}</p>
       </div>
       
       {error && <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 p-3.5 text-sm">{error}</div>}
@@ -118,16 +118,15 @@ export default function FineTuningPanel() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="border border-beige rounded-xl p-4 bg-beige/10 space-y-4">
-          <h3 className="font-bold text-forest text-sm">Readiness Check</h3>
+          <h3 className="font-bold text-forest text-sm">{uiText("Readiness Check")}</h3>
           {readiness ? (
             <div className="space-y-3">
               <ul className="list-disc pl-5 text-sm text-forest space-y-1">
-                <li>Verified Samples: <strong>{readiness.eligible_new_samples}</strong> / {readiness.min_required}</li>
-                <li>Test Dataset Ready: <strong>{readiness.test_dataset_ready ? 'Yes' : 'No'}</strong></li>
+                <li>{uiText("Verified Samples:")}<strong>{readiness.eligible_new_samples}</strong> / {readiness.min_required}</li>
+                <li>{uiText("Test Dataset Ready:")}<strong>{readiness.test_dataset_ready ? uiText("Yes") : uiText("No")}</strong></li>
                 {!readiness.can_train && (
                   <li className="text-red font-bold mt-2">
-                    Blockers:
-                    <ul className="list-disc pl-5 font-normal text-xs text-forest-muted mt-1 space-y-1">
+                    {uiText("Blockers:")}<ul className="list-disc pl-5 font-normal text-xs text-forest-muted mt-1 space-y-1">
                       {readiness.blockers.map((b, i) => <li key={i}>{b}</li>)}
                     </ul>
                   </li>
@@ -141,8 +140,7 @@ export default function FineTuningPanel() {
               >
                 {isStartingTraining ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="button-spinner" /> Starting Fine-Tuning...
-                  </span>
+                    <span className="button-spinner" /> {uiText("Starting Fine-Tuning...")}</span>
                 ) : activeJob ? (
                   'Training in Progress...'
                 ) : (
@@ -151,31 +149,31 @@ export default function FineTuningPanel() {
               </button>
             </div>
           ) : (
-            <p className="text-xs text-forest-muted">Loading readiness stats...</p>
+            <p className="text-xs text-forest-muted">{uiText("Loading readiness stats...")}</p>
           )}
         </div>
 
         <div className="border border-beige rounded-xl p-4 bg-white space-y-3">
-          <h3 className="font-bold text-forest text-sm">Active Deployed Model</h3>
+          <h3 className="font-bold text-forest text-sm">{uiText("Active Deployed Model")}</h3>
           {deployedModel ? (
             <div className="space-y-2 text-sm text-forest">
-              <p><span className="text-forest-muted text-xs block">Checkpoint</span> <strong>{deployedModel.checkpoint}</strong></p>
-              <p><span className="text-forest-muted text-xs block">Test Accuracy</span> <strong>{(deployedModel.test_accuracy * 100).toFixed(2)}%</strong></p>
-              <p><span className="text-forest-muted text-xs block">Macro F1</span> <strong>{deployedModel.macro_f1.toFixed(4)}</strong></p>
-              <p><span className="text-forest-muted text-xs block">Notes</span> <span className="text-xs text-forest-light">{deployedModel.notes || 'No notes'}</span></p>
-              <p><span className="text-forest-muted text-xs block">Deployed At</span> <span className="text-xs text-forest-light">{deployedModel.deployed_at ? new Date(deployedModel.deployed_at).toLocaleString() : 'N/A'}</span></p>
+              <p><span className="text-forest-muted text-xs block">{uiText("Checkpoint")}</span> <strong>{deployedModel.checkpoint}</strong></p>
+              <p><span className="text-forest-muted text-xs block">{uiText("Test Accuracy")}</span> <strong>{(deployedModel.test_accuracy * 100).toFixed(2)}%</strong></p>
+              <p><span className="text-forest-muted text-xs block">{uiText("Macro F1")}</span> <strong>{deployedModel.macro_f1.toFixed(4)}</strong></p>
+              <p><span className="text-forest-muted text-xs block">{uiText("Notes")}</span> <span className="text-xs text-forest-light">{deployedModel.notes || 'No notes'}</span></p>
+              <p><span className="text-forest-muted text-xs block">{uiText("Deployed At")}</span> <span className="text-xs text-forest-light">{deployedModel.deployed_at ? new Date(deployedModel.deployed_at).toLocaleString() : 'N/A'}</span></p>
             </div>
           ) : (
-            <p className="text-xs text-forest-muted">Loading active checkpoint metrics...</p>
+            <p className="text-xs text-forest-muted">{uiText("Loading active checkpoint metrics...")}</p>
           )}
         </div>
       </div>
 
       {activeJob && (
         <div className="border border-forest/20 bg-forest/5 p-4 rounded-xl space-y-2">
-          <h3 className="font-bold text-forest text-sm">Active Training Job: {activeJob.job_id}</h3>
-          <p className="text-xs text-forest"><strong>Status:</strong> {activeJob.status}</p>
-          <p className="text-xs text-forest"><strong>Progress:</strong> Epoch {activeJob.epochs_completed} / {activeJob.total_epochs}</p>
+          <h3 className="font-bold text-forest text-sm">{uiText("Active Training Job:")}{activeJob.job_id}</h3>
+          <p className="text-xs text-forest"><strong>{uiText("Status:")}</strong> {activeJob.status}</p>
+          <p className="text-xs text-forest"><strong>{uiText("Progress:")}</strong> {uiText("Epoch")}{activeJob.epochs_completed} / {activeJob.total_epochs}</p>
           {activeJob.log_tail && (
             <pre className="bg-forest-light/90 text-beige p-3 rounded-lg text-xs overflow-x-auto mt-2 font-mono" style={{ whiteSpace: 'pre-wrap', maxHeight: '180px' }}>
               {activeJob.log_tail}
@@ -185,22 +183,22 @@ export default function FineTuningPanel() {
       )}
 
       <div>
-        <h3 className="font-bold text-forest text-sm mb-3">Training History</h3>
+        <h3 className="font-bold text-forest text-sm mb-3">{uiText("Training History")}</h3>
         {jobs.length === 0 ? (
-          <p className="text-sm text-forest-muted italic">No fine-tuning jobs run yet.</p>
+          <p className="text-sm text-forest-muted italic">{uiText("No fine-tuning jobs run yet.")}</p>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Job ID</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Samples</th>
-                  <th>Acc / F1</th>
-                  <th>Delta</th>
-                  <th>Decision</th>
-                  <th className="text-right">Action</th>
+                  <th>{uiText("Job ID")}</th>
+                  <th>{uiText("Date")}</th>
+                  <th>{uiText("Status")}</th>
+                  <th>{uiText("Samples")}</th>
+                  <th>{uiText("Acc / F1")}</th>
+                  <th>{uiText("Delta")}</th>
+                  <th>{uiText("Decision")}</th>
+                  <th className="text-right">{uiText("Action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -222,11 +220,11 @@ export default function FineTuningPanel() {
                     </td>
                     <td>
                       {job.decision === 'ELIGIBLE_FOR_PROMOTION' ? (
-                        <span className="bg-green-100 text-forest px-2 py-0.5 rounded text-xs font-bold">ELIGIBLE</span>
+                        <span className="bg-green-100 text-forest px-2 py-0.5 rounded text-xs font-bold">{uiText("ELIGIBLE")}</span>
                       ) : job.decision === 'REJECTED_BY_METRICS' ? (
-                        <span className="bg-red-50 text-red px-2 py-0.5 rounded text-xs font-bold">REJECTED</span>
+                        <span className="bg-red-50 text-red px-2 py-0.5 rounded text-xs font-bold">{uiText("REJECTED")}</span>
                       ) : job.decision === 'PROMOTED' ? (
-                        <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded text-xs font-bold">PROMOTED</span>
+                        <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded text-xs font-bold">{uiText("PROMOTED")}</span>
                       ) : '-'}
                     </td>
                     <td className="text-right">

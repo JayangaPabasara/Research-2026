@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import Card from '@/components/ui/Card'
@@ -15,12 +16,12 @@ export default function AdminUsers() {
   useEffect(() => {
     getAdminUsers()
       .then(setUsers)
-      .catch(() => toast.error('Failed to load users'))
+      .catch(() => toast.error(uiText("Failed to load users")))
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <LoadingSpinner labelEn="Loading users..." />
-  if (users.length === 0) return <EmptyState title="No users found" />
+  if (loading) return <LoadingSpinner labelEn={uiText("Loading users...")} />
+  if (users.length === 0) return <EmptyState title={uiText("No users found")} />
 
   return (
     <Card>
@@ -28,11 +29,11 @@ export default function AdminUsers() {
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="border-b border-beige text-xs uppercase text-forest-muted">
             <tr>
-              <th className="py-2">Name</th>
-              <th className="py-2">Email</th>
-              <th className="py-2">Joined</th>
-              <th className="py-2">Analyses</th>
-              <th className="py-2">Status</th>
+              <th className="py-2">{uiText("Name")}</th>
+              <th className="py-2">{uiText("Email")}</th>
+              <th className="py-2">{uiText("Joined")}</th>
+              <th className="py-2">{uiText("Analyses")}</th>
+              <th className="py-2">{uiText("Status")}</th>
             </tr>
           </thead>
           <tbody>

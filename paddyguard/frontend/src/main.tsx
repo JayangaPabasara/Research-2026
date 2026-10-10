@@ -5,10 +5,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import App from './App'
 import './index.css'
+import './i18n'
+import { useAuthStore } from './store/authStore'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
 })
+useAuthStore.subscribe((state, previous) => { if (previous.isAuthenticated && !state.isAuthenticated || previous.user?.id && state.user?.id && previous.user.id !== state.user.id) queryClient.clear() })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

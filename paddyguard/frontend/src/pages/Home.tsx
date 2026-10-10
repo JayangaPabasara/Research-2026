@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
@@ -15,6 +16,7 @@ import { useDiagnosisStore } from '@/store/diagnosisStore'
 import { formatDate } from '@/lib/disease'
 import RiceVisual from '@/components/home/RiceVisual'
 import './home.css'
+import Testimonials from '@/components/community/Testimonials'
 
 const modules = [
   {
@@ -81,46 +83,40 @@ export default function Home() {
     <div className="pg-home">
       <div className="pg-welcome">
         <div>
-          <p className="pg-eyebrow">YOUR FIELD. YOUR FUTURE.</p>
+          <p className="pg-eyebrow">{uiText("YOUR FIELD. YOUR FUTURE.")}</p>
           <h2>
-            <span lang="si">ආයුබෝවන්</span>, {user?.full_name || 'Farmer'}{' '}
+            <span lang="si">{uiText("ආයුබෝවන්")}</span>, {user?.full_name || 'Farmer'}{' '}
             <Leaf size={21} />
           </h2>
         </div>
         <span className="pg-research">
-          <Wheat size={15} /> Agricultural AI · Research project
-        </span>
+          <Wheat size={15} /> {uiText("Agricultural AI · Research project")}</span>
       </div>
       <section className="pg-hero" aria-labelledby="hero-heading">
         <div className="pg-hero-copy">
           <p className="pg-eyebrow">
-            <span className="pg-dot" /> INTELLIGENCE ROOTED IN AGRICULTURE
-          </p>
+            <span className="pg-dot" /> {uiText("INTELLIGENCE ROOTED IN AGRICULTURE")}</p>
           <h2 id="hero-heading">
-            Protecting Every
-            <br />
-            Rice Leaf <em>with AI.</em>
+            {uiText("Protecting Every")}<br />
+            {uiText("Rice Leaf")}<em>{uiText("with AI.")}</em>
           </h2>
           <p lang="si" className="pg-sinhala">
-            සිංහල හඬ සහ AI තාක්ෂණයෙන් ඔබේ වී වගාව සුරකිමු
-          </p>
+            {uiText("සිංහල හඬ සහ AI තාක්ෂණයෙන් ඔබේ වී වගාව සුරකිමු")}</p>
           <p className="pg-hero-description">
-            From the first sign to the next step. Explore voice and image
-            diagnosis, and find treatment guidance for your rice crop.
-          </p>
+            {uiText("From the first sign to the next step. Explore voice and image diagnosis, and find treatment guidance for your rice crop.")}</p>
           <div className="pg-actions">
             <Link to="/voice" className="pg-primary">
-              <Mic size={18} /> Start Voice Diagnosis <ArrowRight size={17} />
+              <Mic size={18} /> {uiText("Start Voice Diagnosis")}<ArrowRight size={17} />
             </Link>
             <Link to="/history" className="pg-secondary">
-              View History <ArrowRight size={16} />
+              {uiText("View History")}<ArrowRight size={16} />
             </Link>
           </div>
           <div className="pg-capabilities">
             {modules.map(({ icon: Icon, title }) => (
               <span key={title}>
                 <Icon size={13} />
-                {title.replace('Diagnosis', 'AI').replace('Disease ', '')}
+                {uiText(title)}
               </span>
             ))}
           </div>
@@ -130,38 +126,38 @@ export default function Home() {
           <div className="pg-orbit pg-orbit-two" />
           <RiceVisual />
           <span className="pg-plant-tag">
-            <Leaf size={14} /> Oryza sativa <span>Rice plant</span>
+            <Leaf size={14} /> Oryza sativa <span>{uiText("Rice plant")}</span>
           </span>
-          <span className="pg-art-caption">GROWING A HEALTHIER TOMORROW</span>
+          <span className="pg-art-caption">{uiText("GROWING A HEALTHIER TOMORROW")}</span>
         </div>
       </section>
-      <section className="pg-statistics" aria-label="Your diagnosis statistics">
+      <section className="pg-statistics" aria-label={uiText("Your diagnosis statistics")}>
         <div className="pg-stat">
           <Activity size={21} />
           <div>
-            <p>Total Diagnoses</p>
+            <p>{uiText("Total Diagnoses")}</p>
             <strong>{total}</strong>
-            <small>Saved Voice & Pest analyses</small>
+            <small>{uiText("Saved Voice & Pest analyses")}</small>
           </div>
         </div>
         <div className="pg-stat">
           <Leaf size={21} />
           <div>
-            <p>Most Recent Disease</p>
+            <p>{uiText("Most Recent Disease")}</p>
             <strong>
               {recentDisease?.disease || 'No voice diagnosis yet'}
             </strong>
-            <small>From your Voice history</small>
+            <small>{uiText("From your Voice history")}</small>
           </div>
         </div>
         <div className="pg-stat">
           <Clock size={21} />
           <div>
-            <p>Last Diagnosis</p>
+            <p>{uiText("Last Diagnosis")}</p>
             <strong>
               {latest && Number.isFinite(Date.parse(latest.timestamp))
                 ? formatDate(latest.timestamp)
-                : 'No diagnosis yet'}
+                : uiText("No diagnosis yet")}
             </strong>
             <small>
               {total
@@ -174,10 +170,10 @@ export default function Home() {
       <section aria-labelledby="features-heading">
         <div className="pg-section-heading">
           <div>
-            <p className="pg-eyebrow">ONE CROP. MULTIPLE PERSPECTIVES.</p>
-            <h2 id="features-heading">A little intelligence. A lot of care.</h2>
+            <p className="pg-eyebrow">{uiText("ONE CROP. MULTIPLE PERSPECTIVES.")}</p>
+            <h2 id="features-heading">{uiText("A little intelligence. A lot of care.")}</h2>
           </div>
-          <span>Choose how you want to begin</span>
+          <span>{uiText("Choose how you want to begin")}</span>
         </div>
         <div className="pg-features">
           {modules.map((mod, index) => (
@@ -210,14 +206,14 @@ export default function Home() {
                     <mod.icon size={72} strokeWidth={0.8} />
                   )}
                 </div>
-                <h3 lang="si">{mod.label}</h3>
-                <p className="pg-feature-title">{mod.title}</p>
+                <h3 lang="si">{uiText(mod.label)}</h3>
+                <p className="pg-feature-title">{uiText(mod.title)}</p>
                 <p lang="si" className="pg-feature-description">
-                  {mod.description}
+                  {uiText(mod.description)}
                 </p>
-                <p className="pg-feature-detail">{mod.detail}</p>
+                <p className="pg-feature-detail">{uiText(mod.detail)}</p>
                 <span className="pg-feature-cta">
-                  {mod.cta}
+                  {uiText(mod.cta)}
                   <ArrowRight size={17} />
                 </span>
               </Link>
@@ -231,10 +227,10 @@ export default function Home() {
       >
         <div className="pg-section-heading">
           <div>
-            <p className="pg-eyebrow">THE RESEARCH BEHIND THE CARE</p>
-            <h2 id="architecture-heading">How PaddyGuard AI Works</h2>
+            <p className="pg-eyebrow">{uiText("THE RESEARCH BEHIND THE CARE")}</p>
+            <h2 id="architecture-heading">{uiText("How PaddyGuard AI Works")}</h2>
           </div>
-          <span>Multimodal inputs. Informed guidance.</span>
+          <span>{uiText("Multimodal inputs. Informed guidance.")}</span>
         </div>
         <div className="pg-flow">
           <div className="pg-flow-inputs">
@@ -243,12 +239,9 @@ export default function Home() {
                 <Icon size={20} />
                 <div>
                   <strong>
-                    {title
-                      .replace('Sinhala Voice Diagnosis', 'Voice NLP')
-                      .replace('Leaf Disease Detection', 'Leaf Disease AI')
-                      .replace('Pest Detection', 'Pest Detection AI')}
+                    {uiText(title)}
                   </strong>
-                  <span lang="si">{label}</span>
+                  <span>{uiText(label)}</span>
                 </div>
               </div>
             ))}
@@ -264,25 +257,23 @@ export default function Home() {
               <MessageCircle size={25} />
             </span>
             <div>
-              <strong>Hybrid Treatment Advisory</strong>
-              <span lang="si">ප්‍රතිකාර උපදෙස්</span>
-              <p>Knowledge-based guidance for your next step.</p>
+              <strong>{uiText("Hybrid Treatment Advisory")}</strong>
+              <span lang="si">{uiText("ප්‍රතිකාර උපදෙස්")}</span>
+              <p>{uiText("Knowledge-based guidance for your next step.")}</p>
             </div>
             <ArrowRight size={20} />
           </Link>
         </div>
         <p className="pg-research-note">
-          Conceptual research architecture: voice and image analysis inform the
-          treatment advisory approach. This diagram does not establish
-          validation of automated integration between modules.
-        </p>
+          {uiText("Conceptual research architecture: voice and image analysis inform the treatment advisory approach. This diagram does not establish validation of automated integration between modules.")}</p>
       </section>
+      <Testimonials />
       <footer className="pg-footer">
         <span>
           <Wheat size={16} /> PaddyGuard AI
         </span>
-        <p>Thoughtfully built for the people who grow our food.</p>
-        <span>University research project</span>
+        <p>{uiText("Thoughtfully built for the people who grow our food.")}</p>
+        <span>{uiText("University research project")}</span>
       </footer>
     </div>
   )

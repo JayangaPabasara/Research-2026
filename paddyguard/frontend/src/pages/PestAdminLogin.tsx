@@ -1,4 +1,6 @@
+import { uiText } from '@/i18n/text'
 import { useState } from 'react'
+import LanguageSwitcher from '@/components/community/LanguageSwitcher'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bug, ShieldCheck } from 'lucide-react'
@@ -26,7 +28,7 @@ export default function PestAdminLogin() {
     setError('')
 
     if (!username.trim() || !password) {
-      setError('Please enter username and password.')
+      setError(uiText("Please enter username and password."))
       return
     }
 
@@ -42,7 +44,7 @@ export default function PestAdminLogin() {
         return
       }
 
-      toast.success('Pest Admin login successful.')
+      toast.success(uiText("Pest Admin login successful."))
       navigate('/pest-admin')
     } finally {
       setLoading(false)
@@ -50,7 +52,8 @@ export default function PestAdminLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cream px-4 py-10">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4 py-10">
+      <LanguageSwitcher />
       <div className="w-full max-w-md">
 
         <div className="mb-6 flex flex-col items-center text-center">
@@ -59,13 +62,10 @@ export default function PestAdminLogin() {
           </div>
 
           <h1 className="mt-4 text-2xl font-bold text-forest">
-            Pest Admin Portal
-          </h1>
+            {uiText("Pest Admin Portal")}</h1>
 
           <p className="mt-2 max-w-sm text-sm leading-5 text-forest-muted">
-            Authorized administrator access for pest model training,
-            few-shot learning and research model management.
-          </p>
+            {uiText("Authorized administrator access for pest model training, few-shot learning and research model management.")}</p>
         </div>
 
         <div className="rounded-2xl bg-white p-8 shadow-lg">
@@ -76,30 +76,28 @@ export default function PestAdminLogin() {
 
             <div>
               <p className="text-sm font-bold text-forest">
-                Pest Model Administration
-              </p>
+                {uiText("Pest Model Administration")}</p>
               <p className="mt-1 text-xs leading-4 text-forest-muted">
-                Fine-tuning is restricted to Pest Admin users.
-              </p>
+                {uiText("Fine-tuning is restricted to Pest Admin users.")}</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Username"
+              label={uiText("Username")}
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="Enter admin username"
+              placeholder={uiText("Enter admin username")}
               autoComplete="username"
               required
             />
 
             <Input
-              label="Password"
+              label={uiText("Password")}
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="Enter admin password"
+              placeholder={uiText("Enter admin password")}
               autoComplete="current-password"
               required
             />
@@ -116,8 +114,7 @@ export default function PestAdminLogin() {
               className="w-full"
               loading={loading}
             >
-              Sign In to Pest Admin
-            </Button>
+              {uiText("Sign In to Pest Admin")}</Button>
           </form>
 
           <div className="mt-6 border-t border-beige pt-4 text-center">
@@ -125,14 +122,12 @@ export default function PestAdminLogin() {
               to="/login"
               className="text-xs text-forest-muted transition hover:text-forest"
             >
-              ← Back to farmer login
-            </Link>
+              {uiText("← Back to farmer login")}</Link>
           </div>
         </div>
 
         <p className="mt-5 text-center text-[11px] text-forest-muted">
-          PaddyGuard AI · Pest Detection Research Module
-        </p>
+          {uiText("PaddyGuard AI · Pest Detection Research Module")}</p>
       </div>
     </div>
   )

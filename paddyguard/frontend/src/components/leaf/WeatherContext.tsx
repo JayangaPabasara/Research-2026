@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useLeafLanguage } from '@/i18n/useLeafLanguage'
+import { uiText } from '@/i18n/text'
+import { useState } from 'react'
 import { refreshWeather } from '@/lib/leafApi'
 import { leafTranslations } from '@/lib/leafTranslations'
 
@@ -19,12 +21,8 @@ export default function WeatherContext({
 }: WeatherContextProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [lang, setLang] = useState<'en' | 'si'>('en')
+  const lang = useLeafLanguage()
 
-  useEffect(() => {
-    const storedLang = localStorage.getItem('paddyguard_leaf_lang') as 'en' | 'si'
-    if (storedLang) setLang(storedLang)
-  }, [caseId])
 
   const t = leafTranslations[lang]
 
@@ -91,10 +89,10 @@ export default function WeatherContext({
         <div className="weather-tile tile-forecast">
           <span className="tile-label">{t.forecast3d}</span>
           <div className="forecast-mini">
-            <div>Max: {weather?.forecast_mean_max_temperature_c?.toFixed(1) ?? '-'}°C</div>
-            <div>Min: {weather?.forecast_mean_min_temperature_c?.toFixed(1) ?? '-'}°C</div>
-            <div>Rain: {weather?.forecast_total_rainfall_mm?.toFixed(1) ?? '-'} mm</div>
-            <div>Hum: {weather?.forecast_mean_humidity_pct?.toFixed(1) ?? '-'}%</div>
+            <div>{uiText("Max:")}{weather?.forecast_mean_max_temperature_c?.toFixed(1) ?? '-'}°C</div>
+            <div>{uiText("Min:")}{weather?.forecast_mean_min_temperature_c?.toFixed(1) ?? '-'}°C</div>
+            <div>{uiText("Rain:")}{weather?.forecast_total_rainfall_mm?.toFixed(1) ?? '-'} mm</div>
+            <div>{uiText("Hum:")}{weather?.forecast_mean_humidity_pct?.toFixed(1) ?? '-'}%</div>
           </div>
         </div>
         <div className="weather-tile tile-risk">
@@ -106,8 +104,7 @@ export default function WeatherContext({
         </div>
       </div>
       <div className="warning disclaimer">
-        <strong>Important:</strong> Climate-risk estimate is a research estimate.
-      </div>
+        <strong>{uiText("Important:")}</strong> {uiText("Climate-risk estimate is a research estimate.")}</div>
     </div>
   )
 }

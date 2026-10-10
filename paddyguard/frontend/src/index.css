@@ -26,3 +26,15 @@ body {
   background-color: #F2EAD3;
   border-radius: 999px;
 }
+/* Desktop collapse participates in flex layout; mobile remains a full drawer. */
+.pg-sidebar { width: 288px; transition: width 250ms ease; }
+.pg-sidebar-label { overflow-wrap: anywhere; min-width: 0; }
+@media (min-width: 1024px) {
+  .pg-sidebar-collapsed { width: 78px; }
+  .pg-sidebar-collapsed .pg-sidebar-label { display: none; }
+  .pg-sidebar-collapsed nav { padding-left: 8px; padding-right: 8px; }
+  .pg-sidebar-collapsed nav a { justify-content: center; padding-left: 8px; padding-right: 8px; }
+  .pg-sidebar-collapsed > div { padding-left: 19px; padding-right: 10px; }
+}
+html[lang="si"] body { font-family: 'Noto Sans Sinhala', sans-serif; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }

@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts'
@@ -92,7 +93,7 @@ export default function AdminDashboard() {
         console.warn('Deployed model endpoint not fully accessible via Gateway')
       }
     } catch {
-      setError('Failed to load dashboard statistics')
+      setError(uiText("Failed to load dashboard statistics"))
     } finally {
       setLoading(false)
     }
@@ -111,7 +112,7 @@ export default function AdminDashboard() {
     setIsPreparingBatch(true)
     try {
       await prepareBatch()
-      toast.success('Batch prepared successfully')
+      toast.success(uiText("Batch prepared successfully"))
       await loadData()
     } catch (err: any) {
       if (err.response?.status === 400) {
@@ -129,7 +130,7 @@ export default function AdminDashboard() {
       const data = await getBatch(batchId)
       setSelectedBatch(data)
     } catch {
-      toast.error('Failed to load batch details')
+      toast.error(uiText("Failed to load batch details"))
     }
   }
 
@@ -147,14 +148,14 @@ export default function AdminDashboard() {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
       
-      toast.success('Zip archive downloaded')
+      toast.success(uiText("Zip archive downloaded"))
       await viewBatch(selectedBatch.batch.batch_id)
       loadData()
     } catch (err: any) {
       if (err.response?.status === 404) {
-        toast.error('Export endpoint is not declared on the Gateway. Batch zip must be generated offline.')
+        toast.error(uiText("Export endpoint is not declared on the Gateway. Batch zip must be generated offline."))
       } else {
-        toast.error('Failed to export batch archive')
+        toast.error(uiText("Failed to export batch archive"))
       }
     } finally {
       setIsExportingBatch(false)
@@ -175,7 +176,7 @@ export default function AdminDashboard() {
     setCandidateDeleteLoading(true)
     try {
       await deleteCandidateModel(candidateToDelete.candidate_id)
-      toast.success('Candidate deleted successfully.')
+      toast.success(uiText("Candidate deleted successfully."))
       setCandidateToDelete(null)
       const refreshed = await getCandidateModels()
       setCandidates(refreshed)
@@ -198,7 +199,7 @@ export default function AdminDashboard() {
     setBatchDeleteLoading(true)
     try {
       await deleteActiveLearningBatch(batchToDelete.batch_id)
-      toast.success('Batch deleted successfully.')
+      toast.success(uiText("Batch deleted successfully."))
       setBatchToDelete(null)
       const refreshed = await getBatches()
       setBatches(refreshed)
@@ -276,18 +277,17 @@ export default function AdminDashboard() {
     }
   }
 
-  if (loading) return <LoadingSpinner labelEn="Loading research dashboard..." />
+  if (loading) return <LoadingSpinner labelEn={uiText("Loading research dashboard...")} />
 
   return (
     <div className="leaf-module space-y-6">
       {/* 1. Fine-Tuning Workflows */}
       <section className="card space-y-6">
         <div>
-          <p className="eyebrow">Model Fine-Tuning &amp; Candidate Management</p>
-          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Choose a Fine-Tuning Workflow</h2>
+          <p className="eyebrow">{uiText("Model Fine-Tuning & Candidate Management")}</p>
+          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>{uiText("Choose a Fine-Tuning Workflow")}</h2>
           <p className="text-sm text-forest-muted">
-            PaddyGuard supports both controlled offline research retraining and integrated in-app PyTorch fine-tuning.
-          </p>
+            {uiText("PaddyGuard supports both controlled offline research retraining and integrated in-app PyTorch fine-tuning.")}</p>
         </div>
 
         {/* Workflow Tabs */}
@@ -300,8 +300,7 @@ export default function AdminDashboard() {
             }`}
             style={{ width: 'auto' }}
           >
-            Option 1: Colab Fine-Tuning
-          </button>
+            {uiText("Option 1: Colab Fine-Tuning")}</button>
           <button
             type="button"
             onClick={() => setWorkflowTab('inapp')}
@@ -310,8 +309,7 @@ export default function AdminDashboard() {
             }`}
             style={{ width: 'auto' }}
           >
-            Option 2: In-App Fine-Tuning
-          </button>
+            {uiText("Option 2: In-App Fine-Tuning")}</button>
         </div>
 
         {workflowTab === 'offline' ? (
@@ -320,17 +318,15 @@ export default function AdminDashboard() {
             <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <span className="eyebrow">Option 1</span>
-                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>Offline / Google Colab Fine-Tuning</h3>
+                  <span className="eyebrow">{uiText("Option 1")}</span>
+                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>{uiText("Offline / Google Colab Fine-Tuning")}</h3>
                 </div>
-                <span className="analytics-panel__badge">Research / Offline Workflow</span>
+                <span className="analytics-panel__badge">{uiText("Research / Offline Workflow")}</span>
               </div>
               <p className="text-sm text-forest-muted">
-                Export expert-verified training samples, fine-tune the deployed model externally in Google Colab, generate a new .pth candidate checkpoint, then upload the candidate here for evaluation against the current deployed model.
-              </p>
+                {uiText("Export expert-verified training samples, fine-tune the deployed model externally in Google Colab, generate a new .pth candidate checkpoint, then upload the candidate here for evaluation against the current deployed model.")}</p>
               <p className="text-xs text-forest-muted italic">
-                Best for larger controlled experiments, GPU training, reproducibility, and Colab-based retraining.
-              </p>
+                {uiText("Best for larger controlled experiments, GPU training, reproducibility, and Colab-based retraining.")}</p>
               <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-semibold text-forest">
                 {[
                   'Expert Verified Samples',
@@ -353,13 +349,12 @@ export default function AdminDashboard() {
             {/* Prepare Next Active Learning Batch */}
             {stats && (
               <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-3">
-                <h3 className="font-bold text-forest text-sm">Prepare Next Active Learning Batch</h3>
+                <h3 className="font-bold text-forest text-sm">{uiText("Prepare Next Active Learning Batch")}</h3>
                 <p className="text-xs text-forest-muted">
-                  <strong>Research recommendation:</strong> Wait until at least 100 expert-verified samples are collected before starting the next controlled retraining round.
-                </p>
+                  <strong>{uiText("Research recommendation:")}</strong> {uiText("Wait until at least 100 expert-verified samples are collected before starting the next controlled retraining round.")}</p>
                 <div className="text-sm font-semibold text-forest flex flex-wrap gap-x-6 gap-y-1">
-                  <span>Available verified samples: <strong className="text-forest">{stats.active_learning_eligible_samples}</strong></span>
-                  <span>Mode: <strong>{stats.active_learning_eligible_samples < 100 ? 'DEMO' : 'CONTROLLED'}</strong></span>
+                  <span>{uiText("Available verified samples:")}<strong className="text-forest">{stats.active_learning_eligible_samples}</strong></span>
+                  <span>{uiText("Mode:")}<strong>{stats.active_learning_eligible_samples < 100 ? uiText("DEMO") : 'CONTROLLED'}</strong></span>
                 </div>
 
                 {stats.active_learning_eligible_samples > 0 ? (
@@ -373,8 +368,7 @@ export default function AdminDashboard() {
                   </button>
                 ) : (
                   <button disabled className="btn-secondary" style={{ cursor: 'not-allowed', width: 'auto' }}>
-                    No expert-verified samples available
-                  </button>
+                    {uiText("No expert-verified samples available")}</button>
                 )}
               </div>
             )}
@@ -382,17 +376,17 @@ export default function AdminDashboard() {
             {/* Prepared Batches List */}
             {batches.length > 0 && (
               <div className="space-y-3">
-                <h3 className="font-bold text-forest text-sm">Prepared Batches</h3>
+                <h3 className="font-bold text-forest text-sm">{uiText("Prepared Batches")}</h3>
                 <div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
-                        <th>Batch ID</th>
-                        <th>Created At</th>
-                        <th>Samples</th>
-                        <th>Status</th>
-                        <th>Mode</th>
-                        <th className="text-right">Action</th>
+                        <th>{uiText("Batch ID")}</th>
+                        <th>{uiText("Created At")}</th>
+                        <th>{uiText("Samples")}</th>
+                        <th>{uiText("Status")}</th>
+                        <th>{uiText("Mode")}</th>
+                        <th className="text-right">{uiText("Action")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -403,7 +397,7 @@ export default function AdminDashboard() {
                           <td className="text-xs text-forest">{b.sample_count}</td>
                           <td className="font-semibold text-xs text-forest">{b.status}</td>
                           <td className="text-xs font-semibold">
-                            {b.is_demo_mode ? <span className="text-amber">DEMO</span> : <span className="text-forest">RESEARCH</span>}
+                            {b.is_demo_mode ? <span className="text-amber">{uiText("DEMO")}</span> : <span className="text-forest">{uiText("RESEARCH")}</span>}
                           </td>
                           <td className="text-right">
                             <div className="flex justify-end gap-2">
@@ -412,8 +406,7 @@ export default function AdminDashboard() {
                                 className="primary-btn text-xs py-1 px-2.5 rounded-lg"
                                 style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
                               >
-                                View
-                              </button>
+                                {uiText("View")}</button>
                               {canDeleteLeafRecords && (
                                 <button
                                   onClick={() => setBatchToDelete(b)}
@@ -430,8 +423,7 @@ export default function AdminDashboard() {
                                   }`}
                                   style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
                                 >
-                                  Delete
-                                </button>
+                                  {uiText("Delete")}</button>
                               )}
                             </div>
                           </td>
@@ -447,18 +439,17 @@ export default function AdminDashboard() {
             {selectedBatch && (
               <div className="rounded-xl border border-beige/60 bg-white p-5 space-y-6 animate-entrance">
                 <div>
-                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>Batch Details</h3>
+                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>{uiText("Batch Details")}</h3>
                   <p className="text-xs text-forest-muted">
-                    Batch metadata and verification checklist.
-                  </p>
+                    {uiText("Batch metadata and verification checklist.")}</p>
                 </div>
 
           <div className="grid gap-4 md:grid-cols-2 text-sm text-forest">
             <div className="space-y-1">
-              <p><strong>Batch ID:</strong> <span className="font-mono text-xs text-forest-light">{selectedBatch.batch.batch_id}</span></p>
-              <p><strong>Verified Samples:</strong> {selectedBatch.batch.sample_count}</p>
-              <p><strong>Recommended Samples:</strong> {selectedBatch.batch.recommended_batch_size}</p>
-              <p><strong>Status:</strong> {selectedBatch.batch.status}</p>
+              <p><strong>{uiText("Batch ID:")}</strong> <span className="font-mono text-xs text-forest-light">{selectedBatch.batch.batch_id}</span></p>
+              <p><strong>{uiText("Verified Samples:")}</strong> {selectedBatch.batch.sample_count}</p>
+              <p><strong>{uiText("Recommended Samples:")}</strong> {selectedBatch.batch.recommended_batch_size}</p>
+              <p><strong>{uiText("Status:")}</strong> {selectedBatch.batch.status}</p>
             </div>
             <div
               className="rounded-xl border p-4"
@@ -469,29 +460,29 @@ export default function AdminDashboard() {
             >
               {selectedBatch.batch.is_demo_mode ? (
                 <>
-                  <h4 className="font-bold text-amber mb-1">DEMO MODE</h4>
-                  <p className="text-xs text-amber-700">This batch is below the recommended research batch size.</p>
+                  <h4 className="font-bold text-amber mb-1">{uiText("DEMO MODE")}</h4>
+                  <p className="text-xs text-amber-700">{uiText("This batch is below the recommended research batch size.")}</p>
                 </>
               ) : (
                 <>
-                  <h4 className="font-bold text-forest mb-1">CONTROLLED RETRAINING BATCH READY</h4>
-                  <p className="text-xs text-forest-muted">Retraining batch meets all research sizing requirements.</p>
+                  <h4 className="font-bold text-forest mb-1">{uiText("CONTROLLED RETRAINING BATCH READY")}</h4>
+                  <p className="text-xs text-forest-muted">{uiText("Retraining batch meets all research sizing requirements.")}</p>
                 </>
               )}
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="font-bold text-forest text-sm">Batch Samples</h3>
+            <h3 className="font-bold text-forest text-sm">{uiText("Batch Samples")}</h3>
             <div className="table-wrap" style={{ maxHeight: '240px', overflowY: 'auto' }}>
               <table>
                 <thead>
                   <tr>
-                    <th>Case ID</th>
-                    <th>AI Prediction</th>
-                    <th>Confidence</th>
-                    <th>Expert Label</th>
-                    <th>Selection Reason</th>
+                    <th>{uiText("Case ID")}</th>
+                    <th>{uiText("AI Prediction")}</th>
+                    <th>{uiText("Confidence")}</th>
+                    <th>{uiText("Expert Label")}</th>
+                    <th>{uiText("Selection Reason")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -511,15 +502,13 @@ export default function AdminDashboard() {
 
           {selectedBatch.batch.status === 'READY' && (
             <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-4">
-              <h3 className="font-bold text-forest text-sm">retraining &amp; Offline Export</h3>
+              <h3 className="font-bold text-forest text-sm">{uiText("retraining & Offline Export")}</h3>
               <p className="text-xs text-forest-muted">
-                Exports expert-verified samples and original images for controlled offline retraining. Deployed model remains unchanged until a candidate is promoted.
-              </p>
+                {uiText("Exports expert-verified samples and original images for controlled offline retraining. Deployed model remains unchanged until a candidate is promoted.")}</p>
               
               {selectedBatch.batch.is_demo_mode && (
                 <div className="rounded-xl bg-amber/5 border border-amber/20 p-3 text-xs text-amber-700">
-                  <strong>Prototype Demonstration Mode:</strong> Demo batches may contain fewer than 100 samples. Exporting demonstrates the pipeline but does not make them equivalent to a controlled research round.
-                </div>
+                  <strong>{uiText("Prototype Demonstration Mode:")}</strong> {uiText("Demo batches may contain fewer than 100 samples. Exporting demonstrates the pipeline but does not make them equivalent to a controlled research round.")}</div>
               )}
 
               <button
@@ -533,7 +522,7 @@ export default function AdminDashboard() {
               
               {selectedBatch.batch.export_count > 0 && (
                 <div className="text-xs text-forest font-semibold mt-2">
-                  ✓ Exported for Colab ({new Date(selectedBatch.batch.exported_at).toLocaleString()})
+                  {uiText("✓ Exported for Colab (")}{new Date(selectedBatch.batch.exported_at).toLocaleString()})
                 </div>
               )}
             </div>
@@ -541,23 +530,23 @@ export default function AdminDashboard() {
 
           {/* Workflow Retraining Steps */}
           <div className="space-y-4 border-t border-beige/60 pt-4">
-            <h3 className="font-bold text-forest text-sm">Retraining Workflow Tracker</h3>
+            <h3 className="font-bold text-forest text-sm">{uiText("Retraining Workflow Tracker")}</h3>
             <p className="text-xs text-forest-muted">
-              Retraining and validation are conducted offline. Deployed model: <strong>{deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</strong>.
+              {uiText("Retraining and validation are conducted offline. Deployed model:")}<strong>{deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</strong>.
             </p>
 
             <div className="space-y-2 text-xs">
               <div className="flex justify-between items-center bg-forest/5 p-3 rounded-lg border-l-4 border-forest">
-                <span><strong>Step 1 — Collect Expert-Verified Samples</strong></span>
-                <span className="font-bold text-forest">✓ COMPLETED</span>
+                <span><strong>{uiText("Step 1 — Collect Expert-Verified Samples")}</strong></span>
+                <span className="font-bold text-forest">{uiText("✓ COMPLETED")}</span>
               </div>
               <div className="flex justify-between items-center bg-forest/5 p-3 rounded-lg border-l-4 border-forest">
-                <span><strong>Step 2 — Validate Labels and Images</strong></span>
-                <span className="font-bold text-forest">✓ COMPLETED</span>
+                <span><strong>{uiText("Step 2 — Validate Labels and Images")}</strong></span>
+                <span className="font-bold text-forest">{uiText("✓ COMPLETED")}</span>
               </div>
               <div className="flex justify-between items-center bg-forest/5 p-3 rounded-lg border-l-4 border-forest">
-                <span><strong>Step 3 — Create Active Learning Batch</strong></span>
-                <span className="font-bold text-forest">✓ COMPLETED</span>
+                <span><strong>{uiText("Step 3 — Create Active Learning Batch")}</strong></span>
+                <span className="font-bold text-forest">{uiText("✓ COMPLETED")}</span>
               </div>
               <div
                 className="flex justify-between items-center p-3 rounded-lg border-l-4"
@@ -566,22 +555,22 @@ export default function AdminDashboard() {
                   borderLeftColor: selectedBatch.batch.export_count > 0 ? '#38a169' : '#d9a521',
                 }}
               >
-                <span><strong>Step 4 — Export Batch for Offline Retraining</strong></span>
+                <span><strong>{uiText("Step 4 — Export Batch for Offline Retraining")}</strong></span>
                 <span className="font-bold" style={{ color: selectedBatch.batch.export_count > 0 ? '#2f855a' : '#d9a521' }}>
-                  {selectedBatch.batch.export_count > 0 ? '✓ EXPORTED' : 'READY'}
+                  {selectedBatch.batch.export_count > 0 ? uiText("✓ EXPORTED") : 'READY'}
                 </span>
               </div>
               <div className="flex justify-between items-center bg-beige/10 p-3 rounded-lg border-l-4 border-beige/60">
-                <span><strong>Step 5 — Candidate Model Retraining</strong></span>
-                <span className="text-forest-muted font-semibold">OFFLINE — NOT EXECUTED BY WEB APP</span>
+                <span><strong>{uiText("Step 5 — Candidate Model Retraining")}</strong></span>
+                <span className="text-forest-muted font-semibold">{uiText("OFFLINE — NOT EXECUTED BY WEB APP")}</span>
               </div>
               <div className="flex justify-between items-center bg-beige/10 p-3 rounded-lg border-l-4 border-beige/60">
-                <span><strong>Step 6 — Held-Out Evaluation & Candidate Comparison</strong></span>
-                <span className="text-forest-muted font-semibold">OFFLINE — REQUIRES CANDIDATE MODEL</span>
+                <span><strong>{uiText("Step 6 — Held-Out Evaluation & Candidate Comparison")}</strong></span>
+                <span className="text-forest-muted font-semibold">{uiText("OFFLINE — REQUIRES CANDIDATE MODEL")}</span>
               </div>
               <div className="flex justify-between items-center bg-beige/10 p-3 rounded-lg border-l-4 border-beige/60">
-                <span><strong>Step 7 — Deployment Approval</strong></span>
-                <span className="text-forest-light font-bold">WAITING</span>
+                <span><strong>{uiText("Step 7 — Deployment Approval")}</strong></span>
+                <span className="text-forest-light font-bold">{uiText("WAITING")}</span>
               </div>
             </div>
           </div>
@@ -591,17 +580,15 @@ export default function AdminDashboard() {
             {/* Candidate Upload (manual .pth generated externally in Colab) */}
             <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-4">
               <h3 className="font-bold text-forest text-sm flex items-center gap-1">
-                <UploadCloud className="h-4 w-4 text-amber" /> Upload Evaluated Checkpoint
-              </h3>
+                <UploadCloud className="h-4 w-4 text-amber" /> {uiText("Upload Evaluated Checkpoint")}</h3>
               <p className="text-xs text-forest-muted">
-                Upload the .pth candidate checkpoint generated in Google Colab, together with its held-out evaluation metrics, so it can be compared against the current deployed model.
-              </p>
+                {uiText("Upload the .pth candidate checkpoint generated in Google Colab, together with its held-out evaluation metrics, so it can be compared against the current deployed model.")}</p>
               {uploadError && <div className="rounded-lg bg-red-50 text-red-700 p-2.5 text-xs font-semibold">{uploadError}</div>}
               {uploadSuccess && <div className="rounded-lg bg-green-50 text-green-700 p-2.5 text-xs font-semibold">{uploadSuccess}</div>}
 
               <form onSubmit={handleUploadSubmit} className="space-y-3">
               <div>
-                <label className="text-xs font-semibold block mb-1">Candidate file (.pth)</label>
+                <label className="text-xs font-semibold block mb-1">{uiText("Candidate file (.pth)")}</label>
                 <input
                   id="candidate-file-input"
                   type="file"
@@ -614,22 +601,22 @@ export default function AdminDashboard() {
 
               <div className="grid gap-3 grid-cols-2">
                 <div>
-                  <label className="text-xs font-semibold block mb-1">Test Accuracy (%)</label>
+                  <label className="text-xs font-semibold block mb-1">{uiText("Test Accuracy (%)")}</label>
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="e.g. 96.66"
+                    placeholder={uiText("e.g. 96.66")}
                     value={testAccuracy}
                     onChange={(e) => setTestAccuracy(e.target.value)}
                     style={{ padding: '8px' }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold block mb-1">Macro F1</label>
+                  <label className="text-xs font-semibold block mb-1">{uiText("Macro F1")}</label>
                   <input
                     type="number"
                     step="0.0001"
-                    placeholder="e.g. 0.9665"
+                    placeholder={uiText("e.g. 0.9665")}
                     value={macroF1}
                     onChange={(e) => setMacroF1(e.target.value)}
                     style={{ padding: '8px' }}
@@ -638,10 +625,10 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold block mb-1">Source Batch ID</label>
+                <label className="text-xs font-semibold block mb-1">{uiText("Source Batch ID")}</label>
                 <input
                   type="text"
-                  placeholder="e.g. AL-BATCH-..."
+                  placeholder={uiText("e.g. AL-BATCH-...")}
                   value={sourceBatchId}
                   onChange={(e) => setSourceBatchId(e.target.value)}
                   style={{ padding: '8px' }}
@@ -649,9 +636,9 @@ export default function AdminDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold block mb-1">Notes</label>
+                <label className="text-xs font-semibold block mb-1">{uiText("Notes")}</label>
                 <textarea
-                  placeholder="Notes on retrained candidate..."
+                  placeholder={uiText("Notes on retrained candidate...")}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   style={{ padding: '8px', height: '60px' }}
@@ -663,7 +650,7 @@ export default function AdminDashboard() {
                 disabled={isUploading}
                 className="primary-submit-btn w-full mt-2"
               >
-                {isUploading ? 'Uploading Checkpoint...' : 'Upload & Validate'}
+                {isUploading ? 'Uploading Checkpoint...' : uiText("Upload & Validate")}
               </button>
             </form>
           </div>
@@ -673,21 +660,19 @@ export default function AdminDashboard() {
             <div className="rounded-xl border border-beige bg-beige/10 p-5 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <span className="eyebrow">Option 2</span>
-                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>In-App PyTorch Fine-Tuning</h3>
+                  <span className="eyebrow">{uiText("Option 2")}</span>
+                  <h3 className="font-bold text-forest text-base" style={{ margin: 0 }}>{uiText("In-App PyTorch Fine-Tuning")}</h3>
                 </div>
-                <span className="analytics-panel__badge">Integrated / In-App Workflow</span>
+                <span className="analytics-panel__badge">{uiText("Integrated / In-App Workflow")}</span>
               </div>
               <p className="text-sm text-forest-muted">
-                Use expert-verified samples to fine-tune the currently deployed model directly inside PaddyGuard using real PyTorch. A new candidate checkpoint is automatically created, evaluated on the held-out test set, and compared with the current deployed model.
-              </p>
+                {uiText("Use expert-verified samples to fine-tune the currently deployed model directly inside PaddyGuard using real PyTorch. A new candidate checkpoint is automatically created, evaluated on the held-out test set, and compared with the current deployed model.")}</p>
               <p className="text-xs text-forest-muted italic">
-                Best for demonstrating the complete automated human-in-the-loop model update pipeline.
-              </p>
+                {uiText("Best for demonstrating the complete automated human-in-the-loop model update pipeline.")}</p>
               <div className="flex flex-wrap items-center gap-2 pt-2 text-xs font-semibold text-forest">
                 {[
                   'Expert Verified Samples',
-                  'Readiness Check',
+                  uiText("Readiness Check"),
                   'Start Fine-Tuning',
                   'Real PyTorch Training',
                   'Automatic Candidate Creation',
@@ -719,14 +704,14 @@ export default function AdminDashboard() {
           style={{ background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
         >
           <div>
-            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Candidate Evaluation &amp; Model Governance</h2>
+            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>{uiText("Candidate Evaluation & Model Governance")}</h2>
             {!governanceExpanded && (
               <div className="text-xs text-forest-muted space-y-0.5 mt-1">
                 <p style={{ margin: 0 }}>
-                  Current Model: {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'} Accuracy | F1 {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}
+                  {uiText("Current Model:")}{deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'} {uiText("Accuracy | F1")}{deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}
                 </p>
                 <p style={{ margin: 0 }}>
-                  {candidates.length} Previous Candidate{candidates.length === 1 ? '' : 's'}
+                  {candidates.length} {uiText("Previous Candidate")}{candidates.length === 1 ? '' : 's'}
                 </p>
               </div>
             )}
@@ -739,25 +724,23 @@ export default function AdminDashboard() {
         {governanceExpanded && (
           <div className="space-y-6 animate-entrance pt-6">
             <p className="text-xs text-forest-muted">
-              Candidates produced by either workflow — Option 1 offline/Colab uploads or Option 2 in-app PyTorch training — pass through this same held-out evaluation and promotion-decision process before any deployment change is made.
-            </p>
+              {uiText("Candidates produced by either workflow — Option 1 offline/Colab uploads or Option 2 in-app PyTorch training — pass through this same held-out evaluation and promotion-decision process before any deployment change is made.")}</p>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-xl border border-beige p-4 bg-beige/10 space-y-2">
-                <h3 className="font-bold text-forest text-sm">Current Deployed Model</h3>
+                <h3 className="font-bold text-forest text-sm">{uiText("Current Deployed Model")}</h3>
                 <div className="text-sm text-forest space-y-1">
-                  <p><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
-                  <p><strong>Test Accuracy:</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
-                  <p><strong>Macro F1:</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
+                  <p><strong>{uiText("Checkpoint:")}</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
+                  <p><strong>{uiText("Test Accuracy:")}</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
+                  <p><strong>{uiText("Macro F1:")}</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
                 </div>
                 <p className="text-[11px] text-forest-muted pt-2 border-t border-beige/60">
-                  Every candidate — regardless of which fine-tuning workflow produced it — is compared against this checkpoint before a promotion decision is made.
-                </p>
+                  {uiText("Every candidate — regardless of which fine-tuning workflow produced it — is compared against this checkpoint before a promotion decision is made.")}</p>
               </div>
 
               {/* Model Comparison Graph */}
               <div className="rounded-xl border border-beige bg-white p-5 space-y-4">
-            <h3 className="font-bold text-forest text-sm">Model Comparison</h3>
+            <h3 className="font-bold text-forest text-sm">{uiText("Model Comparison")}</h3>
             {selectedCandidate ? (
               <div className="space-y-4">
                 <div className="h-56 w-full">
@@ -765,12 +748,12 @@ export default function AdminDashboard() {
                     <BarChart
                       data={[
                         {
-                          name: 'Accuracy (%)',
+                          name: uiText("Accuracy (%)"),
                           Current: (deployedModel?.test_accuracy || 0.9714) * 100,
                           Candidate: selectedCandidate.test_accuracy * 100,
                         },
                         {
-                          name: 'Macro F1 (x100)',
+                          name: uiText("Macro F1 (x100)"),
                           Current: (deployedModel?.macro_f1 || 0.9714) * 100,
                           Candidate: selectedCandidate.macro_f1 * 100,
                         },
@@ -797,9 +780,9 @@ export default function AdminDashboard() {
                 </div>
 
                 <div className="bg-beige/10 rounded-lg p-3 text-xs text-forest space-y-1.5 border border-beige/60">
-                  <h4 className="font-bold text-forest-muted">Performance Deltas</h4>
+                  <h4 className="font-bold text-forest-muted">{uiText("Performance Deltas")}</h4>
                   <p>
-                    Accuracy Change:{' '}
+                    {uiText("Accuracy Change:")}{' '}
                     <span
                       className={
                         selectedCandidate.test_accuracy - (deployedModel?.test_accuracy || 0.9714) > 0
@@ -813,7 +796,7 @@ export default function AdminDashboard() {
                     </span>
                   </p>
                   <p>
-                    Macro F1 Change:{' '}
+                    {uiText("Macro F1 Change:")}{' '}
                     <span
                       className={
                         selectedCandidate.macro_f1 - (deployedModel?.macro_f1 || 0.9714) >= 0
@@ -846,7 +829,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-forest-muted italic py-6">No candidate model loaded.</p>
+              <p className="text-xs text-forest-muted italic py-6">{uiText("No candidate model loaded.")}</p>
             )}
           </div>
         </div>
@@ -854,20 +837,20 @@ export default function AdminDashboard() {
         {/* Previous Candidates table */}
         {candidates.length > 0 && (
           <div className="space-y-3 pt-3 border-t border-beige/60">
-            <h3 className="font-bold text-forest text-sm">Previously Uploaded Candidates</h3>
+            <h3 className="font-bold text-forest text-sm">{uiText("Previously Uploaded Candidates")}</h3>
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Uploaded At</th>
-                    <th>Filename</th>
-                    <th>Accuracy</th>
-                    <th>Macro F1</th>
-                    <th>Accuracy Delta</th>
-                    <th>F1 Delta</th>
-                    <th>Source Batch</th>
-                    <th>Decision</th>
-                    <th className="text-right">Action</th>
+                    <th>{uiText("Uploaded At")}</th>
+                    <th>{uiText("Filename")}</th>
+                    <th>{uiText("Accuracy")}</th>
+                    <th>{uiText("Macro F1")}</th>
+                    <th>{uiText("Accuracy Delta")}</th>
+                    <th>{uiText("F1 Delta")}</th>
+                    <th>{uiText("Source Batch")}</th>
+                    <th>{uiText("Decision")}</th>
+                    <th className="text-right">{uiText("Action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -881,7 +864,7 @@ export default function AdminDashboard() {
                         <td className="text-xs text-forest-muted">{new Date(c.uploaded_at).toLocaleString()}</td>
                         <td className="font-mono text-xs text-forest-light">
                           {c.checkpoint_pruned_at ? (
-                            <span className="text-xs text-forest-muted">Pruned checkpoint</span>
+                            <span className="text-xs text-forest-muted">{uiText("Pruned checkpoint")}</span>
                           ) : (
                             c.filename
                           )}
@@ -915,16 +898,14 @@ export default function AdminDashboard() {
                               className="primary-btn text-xs py-1 px-2.5 rounded-lg"
                               style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
                             >
-                              Compare
-                            </button>
+                              {uiText("Compare")}</button>
                             {canDeleteLeafRecords && (
                               <button
                                 onClick={() => setCandidateToDelete(c)}
                                 className="bg-red-500 hover:bg-red-600 text-white text-xs py-1 px-2.5 rounded-lg"
                                 style={{ width: 'auto', padding: '4px 10px', fontSize: '0.8rem' }}
                               >
-                                Delete
-                              </button>
+                                {uiText("Delete")}</button>
                             )}
                           </div>
                         </td>
@@ -950,11 +931,10 @@ export default function AdminDashboard() {
           style={{ background: 'none', border: 0, padding: 0, margin: 0, cursor: 'pointer' }}
         >
           <div>
-            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Research Experiment Results</h2>
+            <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>{uiText("Research Experiment Results")}</h2>
             {!researchExpanded && (
               <p className="text-xs text-forest-muted" style={{ margin: '4px 0 0' }}>
-                Best: Active Learning Round 2 | {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'} Accuracy | F1 {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'} | AL vs Random +0.48 pp
-              </p>
+                {uiText("Best: Active Learning Round 2 |")}{deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'} {uiText("Accuracy | F1")}{deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'} {uiText("| AL vs Random +0.48 pp")}</p>
             )}
           </div>
           <ChevronDown
@@ -965,45 +945,41 @@ export default function AdminDashboard() {
         {researchExpanded && (
           <div className="space-y-6 animate-entrance pt-6">
             <p className="text-sm text-forest-muted">
-              Research dashboard — shows controlled Active Learning experiment results and live verified samples collected for future retraining.
-            </p>
+              {uiText("Research dashboard — shows controlled Active Learning experiment results and live verified samples collected for future retraining.")}</p>
 
             <div className="rounded-xl border border-forest/10 bg-forest/5 p-4 text-xs space-y-1">
               <p className="text-forest font-semibold">
-                Selection Policy:
-              </p>
+                {uiText("Selection Policy:")}</p>
               <p className="text-forest-muted">
-                Expert review candidates are selected using a hybrid uncertainty strategy: all valid predictions below 50% confidence plus the five lowest-confidence pending predictions. Model retraining is performed offline in controlled experiments. Expert verification does not automatically update the deployed model.
-              </p>
+                {uiText("Expert review candidates are selected using a hybrid uncertainty strategy: all valid predictions below 50% confidence plus the five lowest-confidence pending predictions. Model retraining is performed offline in controlled experiments. Expert verification does not automatically update the deployed model.")}</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-xl border border-beige p-4 bg-beige/10 space-y-2">
-                <h3 className="font-bold text-forest text-sm">Current Deployed Model</h3>
+                <h3 className="font-bold text-forest text-sm">{uiText("Current Deployed Model")}</h3>
                 <div className="text-sm text-forest space-y-1">
-                  <p><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
-                  <p><strong>Architecture:</strong> EfficientNetB3</p>
-                  <p><strong>Test Accuracy:</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
-                  <p><strong>Macro F1:</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
-                  <p><strong>Training labels:</strong> 2300</p>
-                  <p><strong>Classes:</strong> 4</p>
+                  <p><strong>{uiText("Checkpoint:")}</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
+                  <p><strong>{uiText("Architecture:")}</strong> EfficientNetB3</p>
+                  <p><strong>{uiText("Test Accuracy:")}</strong> {deployedModel?.test_accuracy ? `${(deployedModel.test_accuracy * 100).toFixed(2)}%` : '97.14%'}</p>
+                  <p><strong>{uiText("Macro F1:")}</strong> {deployedModel?.macro_f1 ? deployedModel.macro_f1.toFixed(4) : '0.9714'}</p>
+                  <p><strong>{uiText("Training labels:")}</strong> 2300</p>
+                  <p><strong>{uiText("Classes:")}</strong> 4</p>
                 </div>
                 <p className="text-[11px] text-forest-muted pt-2 border-t border-beige/60">
-                  The deployed checkpoint was selected from the Active Learning experiment because Round 2 achieved the highest held-out test performance.
-                </p>
+                  {uiText("The deployed checkpoint was selected from the Active Learning experiment because Round 2 achieved the highest held-out test performance.")}</p>
               </div>
 
               <div className="rounded-xl border border-beige p-4 bg-white space-y-2">
-                <h3 className="font-bold text-forest text-sm">Key Findings</h3>
+                <h3 className="font-bold text-forest text-sm">{uiText("Key Findings")}</h3>
                 <div className="text-sm text-forest space-y-1">
-                  <p><strong>Same annotation budget (2300 labels):</strong></p>
+                  <p><strong>{uiText("Same annotation budget (2300 labels):")}</strong></p>
                   <ul className="list-disc pl-5 text-xs text-forest-muted space-y-0.5">
-                    <li>Active Learning: 97.14%</li>
-                    <li>Random Sampling: 96.66%</li>
+                    <li>{uiText("Active Learning: 97.14%")}</li>
+                    <li>{uiText("Random Sampling: 96.66%")}</li>
                   </ul>
-                  <p>Difference: <strong>+0.48</strong> percentage points in this experiment.</p>
-                  <p className="pt-2 border-t border-beige/60"><strong>Overall Improvement:</strong></p>
-                  <p className="text-xs">Baseline (95.70%) → Best Active Learning (97.14%) (+1.44 percentage points)</p>
+                  <p>{uiText("Difference:")}<strong>+0.48</strong> {uiText("percentage points in this experiment.")}</p>
+                  <p className="pt-2 border-t border-beige/60"><strong>{uiText("Overall Improvement:")}</strong></p>
+                  <p className="text-xs">{uiText("Baseline (95.70%) → Best Active Learning (97.14%) (+1.44 percentage points)")}</p>
                 </div>
               </div>
             </div>
@@ -1012,45 +988,45 @@ export default function AdminDashboard() {
               <table>
                 <thead>
                   <tr>
-                    <th>Experiment Phase</th>
-                    <th>Labels</th>
-                    <th>Accuracy</th>
-                    <th>Macro F1</th>
+                    <th>{uiText("Experiment Phase")}</th>
+                    <th>{uiText("Labels")}</th>
+                    <th>{uiText("Accuracy")}</th>
+                    <th>{uiText("Macro F1")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Baseline</td>
+                    <td>{uiText("Baseline")}</td>
                     <td>2100</td>
                     <td>95.70%</td>
                     <td>0.9568</td>
                   </tr>
                   <tr>
-                    <td>Active Learning +100</td>
+                    <td>{uiText("Active Learning +100")}</td>
                     <td>2200</td>
                     <td>96.90%</td>
                     <td>0.9689</td>
                   </tr>
                   <tr>
-                    <td>Random +100</td>
+                    <td>{uiText("Random +100")}</td>
                     <td>2200</td>
                     <td>96.54%</td>
                     <td>0.9652</td>
                   </tr>
                   <tr style={{ background: '#f0fff4', fontWeight: 'bold' }}>
-                    <td>Active Learning +200 (Deployed)</td>
+                    <td>{uiText("Active Learning +200 (Deployed)")}</td>
                     <td>2300</td>
                     <td>97.14%</td>
                     <td>0.9714</td>
                   </tr>
                   <tr>
-                    <td>Random +200</td>
+                    <td>{uiText("Random +200")}</td>
                     <td>2300</td>
                     <td>96.66%</td>
                     <td>0.9664</td>
                   </tr>
                   <tr>
-                    <td>Active Learning +300</td>
+                    <td>{uiText("Active Learning +300")}</td>
                     <td>2400</td>
                     <td>96.90%</td>
                     <td>0.9690</td>
@@ -1065,10 +1041,9 @@ export default function AdminDashboard() {
       {/* 4. Live Active Learning Data */}
       <section className="card space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>Live Active Learning Data</h2>
+          <h2 className="text-xl font-bold text-forest mb-1" style={{ margin: 0 }}>{uiText("Live Active Learning Data")}</h2>
           <p className="text-xs text-forest-muted">
-            Telemetry metrics of the live expert review process.
-          </p>
+            {uiText("Telemetry metrics of the live expert review process.")}</p>
         </div>
 
         {error && <p className="error">{error}</p>}
@@ -1076,23 +1051,23 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
               <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Pending Reviews</span>
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">{uiText("Pending Reviews")}</span>
                 <strong className="text-2xl text-forest block mt-1">{stats.pending_expert_reviews}</strong>
               </div>
               <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Verified Samples</span>
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">{uiText("Verified Samples")}</span>
                 <strong className="text-2xl text-forest block mt-1">{stats.verified_expert_samples}</strong>
               </div>
               <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Approved for Training</span>
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">{uiText("Approved for Training")}</span>
                 <strong className="text-2xl text-forest block mt-1">{stats.approved_for_training_samples}</strong>
               </div>
               <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Available / Unused</span>
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">{uiText("Available / Unused")}</span>
                 <strong className="text-2xl text-forest block mt-1">{stats.active_learning_eligible_samples}</strong>
               </div>
               <div className="rounded-xl border border-beige bg-beige/10 p-3">
-                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">Consumed / Used</span>
+                <span className="text-[10px] text-forest-muted uppercase tracking-wider block">{uiText("Consumed / Used")}</span>
                 <strong className="text-2xl text-forest block mt-1">{stats.consumed_training_samples}</strong>
               </div>
             </div>
@@ -1103,7 +1078,7 @@ export default function AdminDashboard() {
                   data={[
                     { name: 'Pending Review', count: stats.pending_expert_reviews },
                     { name: 'Verified', count: stats.verified_expert_samples },
-                    { name: 'Approved', count: stats.approved_for_training_samples },
+                    { name: uiText("Approved"), count: stats.approved_for_training_samples },
                     { name: 'Available', count: stats.active_learning_eligible_samples },
                     { name: 'Consumed', count: stats.consumed_training_samples },
                     { name: 'Active Models', count: stats.storage_summary?.active_models || 0 },
@@ -1125,20 +1100,20 @@ export default function AdminDashboard() {
 
       {/* Demo batch Warning Modal */}
       {compareCandidate && (
-        <Modal isOpen={Boolean(compareCandidate)} onClose={() => setCompareCandidate(null)} title="Candidate Comparison" size="lg">
+        <Modal isOpen={Boolean(compareCandidate)} onClose={() => setCompareCandidate(null)} title={uiText("Candidate Comparison")} size="lg">
           <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-beige bg-beige/10 p-4">
-                <h4 className="font-bold text-forest text-sm mb-2">Current Model</h4>
-                <p className="text-xs text-forest-muted"><strong>Checkpoint:</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
-                <p className="text-xs text-forest-muted"><strong>Accuracy:</strong> {((deployedModel?.test_accuracy || 0.9714) * 100).toFixed(2)}%</p>
-                <p className="text-xs text-forest-muted"><strong>Macro F1:</strong> {(deployedModel?.macro_f1 || 0.9714).toFixed(4)}</p>
+                <h4 className="font-bold text-forest text-sm mb-2">{uiText("Current Model")}</h4>
+                <p className="text-xs text-forest-muted"><strong>{uiText("Checkpoint:")}</strong> {deployedModel?.checkpoint || 'PaddyGuard_active_learning_round2.pth'}</p>
+                <p className="text-xs text-forest-muted"><strong>{uiText("Accuracy:")}</strong> {((deployedModel?.test_accuracy || 0.9714) * 100).toFixed(2)}%</p>
+                <p className="text-xs text-forest-muted"><strong>{uiText("Macro F1:")}</strong> {(deployedModel?.macro_f1 || 0.9714).toFixed(4)}</p>
               </div>
               <div className="rounded-xl border border-beige bg-beige/10 p-4">
-                <h4 className="font-bold text-forest text-sm mb-2">Candidate Model</h4>
-                <p className="text-xs text-forest-muted"><strong>Filename:</strong> {compareCandidate.filename}</p>
-                <p className="text-xs text-forest-muted"><strong>Accuracy:</strong> {(compareCandidate.test_accuracy * 100).toFixed(2)}%</p>
-                <p className="text-xs text-forest-muted"><strong>Macro F1:</strong> {compareCandidate.macro_f1.toFixed(4)}</p>
+                <h4 className="font-bold text-forest text-sm mb-2">{uiText("Candidate Model")}</h4>
+                <p className="text-xs text-forest-muted"><strong>{uiText("Filename:")}</strong> {compareCandidate.filename}</p>
+                <p className="text-xs text-forest-muted"><strong>{uiText("Accuracy:")}</strong> {(compareCandidate.test_accuracy * 100).toFixed(2)}%</p>
+                <p className="text-xs text-forest-muted"><strong>{uiText("Macro F1:")}</strong> {compareCandidate.macro_f1.toFixed(4)}</p>
               </div>
             </div>
 
@@ -1146,31 +1121,31 @@ export default function AdminDashboard() {
               <table className="w-full text-left">
                 <thead className="bg-beige/40">
                   <tr>
-                    <th className="p-3 text-xs uppercase text-forest-muted">Metric</th>
-                    <th className="p-3 text-xs uppercase text-forest-muted">Current Model</th>
-                    <th className="p-3 text-xs uppercase text-forest-muted">Candidate</th>
-                    <th className="p-3 text-xs uppercase text-forest-muted">Delta</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">{uiText("Metric")}</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">{uiText("Current Model")}</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">{uiText("Candidate")}</th>
+                    <th className="p-3 text-xs uppercase text-forest-muted">{uiText("Delta")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
                     {
-                      label: 'Accuracy',
+                      label: uiText("Accuracy"),
                       current: (deployedModel?.test_accuracy || 0.9714) * 100,
                       candidate: compareCandidate.test_accuracy * 100,
                       delta: (compareCandidate.test_accuracy - (deployedModel?.test_accuracy || 0.9714)) * 100,
                       suffix: '%',
                     },
                     {
-                      label: 'Macro F1',
+                      label: uiText("Macro F1"),
                       current: (deployedModel?.macro_f1 || 0.9714) * 100,
                       candidate: compareCandidate.macro_f1 * 100,
                       delta: (compareCandidate.macro_f1 - (deployedModel?.macro_f1 || 0.9714)) * 100,
                       suffix: '%',
                     },
                   ].map((row) => (
-                    <tr key={row.label} className="border-t border-beige">
-                      <td className="p-3 text-sm font-semibold text-forest">{row.label}</td>
+                    <tr key={uiText(row.label)} className="border-t border-beige">
+                      <td className="p-3 text-sm font-semibold text-forest">{uiText(row.label)}</td>
                       <td className="p-3 text-sm text-forest-muted">{row.current.toFixed(2)}{row.suffix}</td>
                       <td className="p-3 text-sm text-forest-muted">{row.candidate.toFixed(2)}{row.suffix}</td>
                       <td className={`p-3 text-sm font-bold ${row.delta >= 0 ? 'text-forest' : 'text-red-600'}`}>
@@ -1183,16 +1158,15 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2 text-xs text-forest-muted">
-              <div><strong>Source Batch:</strong> {compareCandidate.source_batch_id || 'N/A'}</div>
-              <div><strong>Upload Date:</strong> {new Date(compareCandidate.uploaded_at).toLocaleString()}</div>
-              <div><strong>Decision:</strong> {compareCandidate.status === 'ELIGIBLE_FOR_REVIEW' ? 'Review Eligible' : 'Rejected'}</div>
-              <div><strong>Status:</strong> {compareCandidate.status}</div>
+              <div><strong>{uiText("Source Batch:")}</strong> {compareCandidate.source_batch_id || 'N/A'}</div>
+              <div><strong>{uiText("Upload Date:")}</strong> {new Date(compareCandidate.uploaded_at).toLocaleString()}</div>
+              <div><strong>{uiText("Decision:")}</strong> {compareCandidate.status === 'ELIGIBLE_FOR_REVIEW' ? 'Review Eligible' : 'Rejected'}</div>
+              <div><strong>{uiText("Status:")}</strong> {compareCandidate.status}</div>
             </div>
 
             <div className="flex justify-end">
               <button onClick={() => setCompareCandidate(null)} className="primary-btn text-sm py-2 px-4 rounded-lg">
-                Close
-              </button>
+                {uiText("Close")}</button>
             </div>
           </div>
         </Modal>
@@ -1200,9 +1174,9 @@ export default function AdminDashboard() {
 
       <ConfirmDialog
         isOpen={Boolean(candidateToDelete)}
-        title="Delete candidate model"
+        title={uiText("Delete candidate model")}
         message={`Are you sure you want to delete this candidate model?\n\nFilename: ${candidateToDelete?.filename ?? 'Unknown'}\nUpload date: ${candidateToDelete?.uploaded_at ? new Date(candidateToDelete.uploaded_at).toLocaleString() : 'N/A'}\nDecision: ${candidateToDelete?.status === 'ELIGIBLE_FOR_REVIEW' ? 'Review Eligible' : 'Rejected'}\nSource batch: ${candidateToDelete?.source_batch_id || 'N/A'}`}
-        confirmLabel="Delete Candidate"
+        confirmLabel={uiText("Delete Candidate")}
         danger
         loading={candidateDeleteLoading}
         onConfirm={confirmCandidateDelete}
@@ -1211,9 +1185,9 @@ export default function AdminDashboard() {
 
       <ConfirmDialog
         isOpen={Boolean(batchToDelete)}
-        title="Delete Active Learning batch"
-        message={`Delete Active Learning batch ${batchToDelete?.batch_id ?? 'Unknown'}?\n\nCreated: ${batchToDelete?.created_at ? new Date(batchToDelete.created_at).toLocaleString() : 'N/A'}\nSamples: ${batchToDelete?.sample_count ?? 0}\nStatus: ${batchToDelete?.status ?? 'UNKNOWN'}\nMode: ${batchToDelete?.is_demo_mode ? 'DEMO' : 'RESEARCH'}`}
-        confirmLabel="Delete Batch"
+        title={uiText("Delete Active Learning batch")}
+        message={`Delete Active Learning batch ${batchToDelete?.batch_id ?? 'Unknown'}?\n\nCreated: ${batchToDelete?.created_at ? new Date(batchToDelete.created_at).toLocaleString() : 'N/A'}\nSamples: ${batchToDelete?.sample_count ?? 0}\nStatus: ${batchToDelete?.status ?? 'UNKNOWN'}\nMode: ${batchToDelete?.is_demo_mode ? uiText("DEMO") : uiText("RESEARCH")}`}
+        confirmLabel={uiText("Delete Batch")}
         danger
         loading={batchDeleteLoading}
         onConfirm={confirmBatchDelete}
@@ -1223,24 +1197,20 @@ export default function AdminDashboard() {
       {warningModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', maxWidth: '500px' }}>
-            <h3 style={{ color: '#dd6b20', marginBottom: '1rem', fontWeight: 'bold' }}>Demo Batch Warning</h3>
+            <h3 style={{ color: '#dd6b20', marginBottom: '1rem', fontWeight: 'bold' }}>{uiText("Demo Batch Warning")}</h3>
             <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#4a5568' }}>
-              This batch contains fewer than the recommended 100 expert-verified samples.
-            </p>
+              {uiText("This batch contains fewer than the recommended 100 expert-verified samples.")}</p>
             <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: '#4a5568' }}>
-              The controlled PaddyGuard Active Learning experiments used 100 newly labelled samples per round.
-            </p>
+              {uiText("The controlled PaddyGuard Active Learning experiments used 100 newly labelled samples per round.")}</p>
             <p style={{ marginBottom: '1.5rem', padding: '1rem', background: '#fffaf0', borderRadius: '4px', fontSize: '0.85rem', color: '#b45309' }}>
-              You may continue for demonstration purposes, but this batch is not equivalent to a new controlled research round.
-            </p>
+              {uiText("You may continue for demonstration purposes, but this batch is not equivalent to a new controlled research round.")}</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setWarningModalOpen(false)}
                 className="btn-secondary"
                 style={{ width: 'auto', padding: '8px 16px' }}
               >
-                Cancel
-              </button>
+                {uiText("Cancel")}</button>
               <button
                 onClick={executePrepare}
                 disabled={isPreparingBatch}

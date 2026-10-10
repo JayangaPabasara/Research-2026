@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { uiText } from '@/i18n/text'
 import type { SpeechRecognitionLike } from '@/types/speech'
 
 export type MicLang = 'en-US' | 'si-LK'
@@ -40,7 +41,7 @@ export function useSpeechRecognition(onFinalResult: (text: string) => void): Use
   const start = useCallback((lang: MicLang) => {
     const Ctor = getRecognitionCtor()
     if (!Ctor) {
-      setError('Voice input is not supported in this browser. Try Chrome or Edge.')
+      setError(uiText('Voice input is not supported in this browser. Try Chrome or Edge.'))
       return
     }
     setError(null)
@@ -67,7 +68,7 @@ export function useSpeechRecognition(onFinalResult: (text: string) => void): Use
       if (event.error === 'no-speech' || event.error === 'aborted') {
         setError(null)
       } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-        setError('Microphone permission denied. | මයික්‍රෆෝන් අවසර ලබා දී නැත.')
+        setError(uiText('Microphone permission denied.'))
       } else if (event.error === 'language-not-supported') {
         setError(
           lang === 'si-LK'
@@ -75,7 +76,7 @@ export function useSpeechRecognition(onFinalResult: (text: string) => void): Use
             : 'Voice input language is not supported by this browser.'
         )
       } else {
-        setError('Voice input failed. Please try again.')
+        setError(uiText('Voice input failed. Please try again.'))
       }
     }
     recognition.onend = () => {

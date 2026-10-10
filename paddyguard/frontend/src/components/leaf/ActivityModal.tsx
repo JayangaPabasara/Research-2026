@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useLeafLanguage } from '@/i18n/useLeafLanguage'
+import { uiText } from '@/i18n/text'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
 import { formatDate } from '@/lib/disease'
@@ -11,12 +12,8 @@ interface ActivityModalProps {
 }
 
 export default function ActivityModal({ caseData, onClose }: ActivityModalProps) {
-  const [lang, setLang] = useState<'en' | 'si'>('en')
+  const lang = useLeafLanguage()
 
-  useEffect(() => {
-    const storedLang = localStorage.getItem('paddyguard_leaf_lang') as 'en' | 'si'
-    if (storedLang) setLang(storedLang)
-  }, [caseData]) // Refresh language preference when case details modal is opened
 
   if (!caseData) return null
 
@@ -35,7 +32,7 @@ export default function ActivityModal({ caseData, onClose }: ActivityModalProps)
               <span className="block text-xs font-semibold text-forest-muted mb-1">{t.originalImage}</span>
               <img
                 src={c.original_image_url}
-                alt="Leaf Original"
+                alt={uiText("Leaf Original")}
                 className="w-full h-48 rounded-xl object-contain border border-beige bg-beige/10"
                 onError={(e) => {
                   ;(e.target as HTMLElement).style.display = 'none'
@@ -48,7 +45,7 @@ export default function ActivityModal({ caseData, onClose }: ActivityModalProps)
               <span className="block text-xs font-semibold text-forest-muted mb-1">{t.gradcamImage}</span>
               <img
                 src={c.gradcam_image_url}
-                alt="Leaf Grad-CAM"
+                alt={uiText("Leaf Grad-CAM")}
                 className="w-full h-48 rounded-xl object-contain border border-beige bg-beige/10"
                 onError={(e) => {
                   ;(e.target as HTMLElement).style.display = 'none'
@@ -61,7 +58,7 @@ export default function ActivityModal({ caseData, onClose }: ActivityModalProps)
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-beige/60 pb-3">
             <span className="font-mono text-sm font-bold text-forest">
-              ID: {c.case_id}
+              {uiText("ID:")}{c.case_id}
             </span>
             <div className="flex items-center gap-2">
               <Badge tone={c.confidence >= 0.75 ? 'green' : 'amber'}>
@@ -77,7 +74,7 @@ export default function ActivityModal({ caseData, onClose }: ActivityModalProps)
 
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div>
-              <dt className="text-forest-muted">{lang === 'si' ? 'දිනය' : 'Date'}</dt>
+              <dt className="text-forest-muted">{lang === 'si' ? uiText("දිනය") : uiText("Date")}</dt>
               <dd className="font-medium text-forest">{formatDate(c.created_at)}</dd>
             </div>
             <div>
@@ -85,7 +82,7 @@ export default function ActivityModal({ caseData, onClose }: ActivityModalProps)
               <dd className="font-medium text-forest">{c.city || '-'}</dd>
             </div>
             <div>
-              <dt className="text-forest-muted">{lang === 'si' ? 'AI පුරෝකථනය' : 'AI Prediction'}</dt>
+              <dt className="text-forest-muted">{lang === 'si' ? uiText("AI පුරෝකථනය") : uiText("AI Prediction")}</dt>
               <dd className="font-medium text-forest">{c.predicted_disease?.replace(/_/g, ' ') || '-'}</dd>
             </div>
             {hasExpertLabel && (

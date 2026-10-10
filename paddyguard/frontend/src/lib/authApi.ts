@@ -1,4 +1,5 @@
 import api from './api'
+import { readProfile } from './communityApi'
 
 export interface TokenResponse {
   access_token: string
@@ -6,12 +7,7 @@ export interface TokenResponse {
   token_type: string
 }
 
-export interface ProfileResponse {
-  id: string
-  email: string
-  full_name: string | null
-  is_active: boolean
-}
+export type { Profile as ProfileResponse } from './communityApi'
 
 export async function login(email: string, password: string): Promise<TokenResponse> {
   const { data } = await api.post('/api/v1/auth/login', { email, password })
@@ -23,7 +19,4 @@ export async function register(email: string, password: string, fullName?: strin
   return data
 }
 
-export async function getProfile(): Promise<ProfileResponse> {
-  const { data } = await api.get('/api/v1/auth/me')
-  return data
-}
+export const getProfile = readProfile

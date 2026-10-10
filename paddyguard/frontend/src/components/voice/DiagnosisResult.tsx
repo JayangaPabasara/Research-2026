@@ -1,4 +1,6 @@
+import { uiText } from '@/i18n/text'
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Play, Pause, MessageCircle } from 'lucide-react'
@@ -16,6 +18,7 @@ interface DiagnosisResultProps {
 }
 
 export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisResultProps) {
+  const { i18n } = useTranslation()
   const navigate = useNavigate()
   const color = diseaseColor(result.disease)
   const speech = useSpeechAudio(result.tts_audio_b64)
@@ -50,7 +53,7 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
                   onClick={speech.status === 'playing' ? speech.pause : speech.play}
                   className="flex items-center gap-1.5 rounded-full bg-forest/10 px-3 py-1.5
                     text-xs font-semibold text-forest hover:bg-forest/20 transition-colors"
-                  title={speech.status === 'playing' ? 'විරාමය | Pause' : 'ශ්‍රවණය | Play'}
+                  title={speech.status === 'playing' ? uiText("විරාමය | Pause") : uiText("ශ්‍රවණය | Play")}
                 >
                   {speech.status === 'playing' ? (
                     <Pause className="h-3.5 w-3.5" />
@@ -58,10 +61,10 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
                     <Play className="h-3.5 w-3.5" />
                   )}
                   {speech.status === 'playing'
-                    ? 'විරාමය | Pause'
+                    ? uiText("විරාමය | Pause")
                     : speech.status === 'paused'
-                    ? 'දිගටම | Resume'
-                    : 'ශ්‍රවණය | Play'}
+                    ? uiText("දිගටම | Resume")
+                    : uiText("ශ්‍රවණය | Play")}
                 </button>
               </div>
             )}
@@ -80,9 +83,7 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
               : 'bg-green-100 text-green-700'
             }`}
           >
-            <span>{result.severity.label_si}</span>
-            <span className="opacity-60">|</span>
-            <span>{result.severity.label_en}</span>
+            <span>{i18n.language === 'si' ? result.severity.label_si : result.severity.label_en}</span>
           </div>
         )}
 
@@ -95,14 +96,13 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
       </Card>
 
       <Card>
-        <h4 className="mb-3 text-sm font-semibold text-forest-muted">Confidence Breakdown</h4>
+        <h4 className="mb-3 text-sm font-semibold text-forest-muted">{uiText("Confidence Breakdown")}</h4>
         <ConfidenceBar allScores={result.all_scores} disease={result.disease} />
 
         {result.confidence_trajectory && result.confidence_trajectory.length > 1 && (
           <div className="mt-4 rounded-xl bg-beige p-4">
             <p className="mb-3 text-xs font-semibold uppercase text-forest-muted">
-              විශ්වාසදායිතා පථය | Confidence Trajectory
-            </p>
+              {uiText("විශ්වාසදායිතා පථය | Confidence Trajectory")}</p>
             <div className="flex items-end gap-2 h-16">
               {result.confidence_trajectory.map((step) => (
                 <div key={step.step} className="flex flex-1 flex-col items-center justify-end gap-1">
@@ -111,7 +111,7 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
                     style={{ height: `${Math.max(step.confidence * 40, 4)}px` }}
                     title={`${step.label}: ${Math.round(step.confidence * 100)}%`}
                   />
-                  <span className="text-xs text-forest-muted">{step.step === 0 ? 'Start' : `Q${step.step}`}</span>
+                  <span className="text-xs text-forest-muted">{step.step === 0 ? uiText('Start') : `Q${step.step}`}</span>
                 </div>
               ))}
             </div>
@@ -121,8 +121,7 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
 
       <div className="flex gap-3">
         <Button variant="outline" className="flex-1" onClick={onNewDiagnosis}>
-          නැවත | New Diagnosis
-        </Button>
+          {uiText("නැවත | New Diagnosis")}</Button>
         <Button
           variant="outline"
           className="flex-1"
@@ -135,8 +134,7 @@ export default function DiagnosisResult({ result, onNewDiagnosis }: DiagnosisRes
           }
         >
           <MessageCircle className="h-4 w-4" />
-          ප්‍රතිකාර | Treatment
-        </Button>
+          {uiText("ප්‍රතිකාර | Treatment")}</Button>
       </div>
     </motion.div>
   )

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useLeafLanguage } from '@/i18n/useLeafLanguage'
+import { uiText } from '@/i18n/text'
+import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
@@ -16,12 +18,8 @@ interface HistoryTableProps {
 export default function HistoryTable({ cases, onRowClick, onDelete }: HistoryTableProps) {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [lang, setLang] = useState<'en' | 'si'>('en')
+  const lang = useLeafLanguage()
 
-  useEffect(() => {
-    const storedLang = localStorage.getItem('paddyguard_leaf_lang') as 'en' | 'si'
-    if (storedLang) setLang(storedLang)
-  }, [])
 
   const t = leafTranslations[lang]
 
@@ -46,12 +44,12 @@ export default function HistoryTable({ cases, onRowClick, onDelete }: HistoryTab
         <thead className="border-b border-beige bg-beige/20 text-xs uppercase text-forest-muted">
           <tr>
             <th className="px-4 py-3">{t.caseId}</th>
-            <th className="px-4 py-3">Date</th>
+            <th className="px-4 py-3">{uiText("Date")}</th>
             <th className="px-4 py-3">{t.disease}</th>
             <th className="px-4 py-3">{t.confidence}</th>
             <th className="px-4 py-3">{t.severity}</th>
             <th className="px-4 py-3">{t.city}</th>
-            <th className="px-4 py-3 text-right">Actions</th>
+            <th className="px-4 py-3 text-right">{uiText("Actions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -68,10 +66,10 @@ export default function HistoryTable({ cases, onRowClick, onDelete }: HistoryTab
                 <td className="px-4 py-3 font-mono text-xs text-forest-muted">
                   <div>{c.case_id.substring(0, 8)}...</div>
                   {c.needs_expert_review && c.review_status === 'pending' && (
-                    <span className="text-[10px] text-amber font-semibold block mt-1">Review Required</span>
+                    <span className="text-[10px] text-amber font-semibold block mt-1">{uiText("Review Required")}</span>
                   )}
                   {c.needs_expert_review && c.review_status === 'verified' && (
-                    <span className="text-[10px] text-forest font-semibold block mt-1">Expert Verified</span>
+                    <span className="text-[10px] text-forest font-semibold block mt-1">{uiText("Expert Verified")}</span>
                   )}
                 </td>
                 <td className="px-4 py-3 text-forest-light">{formatDate(c.created_at)}</td>

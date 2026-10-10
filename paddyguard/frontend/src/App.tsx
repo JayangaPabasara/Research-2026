@@ -1,4 +1,12 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { readProfile } from '@/lib/communityApi'
+import i18n from '@/i18n'
+import Profile from '@/pages/Profile'
+import Feedback from '@/pages/Feedback'
+import SystemAdmin from '@/pages/SystemAdmin'
+import SystemAdminGuard from '@/components/layout/SystemAdminGuard'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '@/components/layout/AppShell'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
@@ -60,10 +68,14 @@ function PestAdminProtected({
 }
 
 export default function App() {
+  useTranslation()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const id = useAuthStore(s => s.user?.id)
+  const identity = useQuery({ queryKey: ['sessionIdentity', id, isAuthenticated], queryFn: ({ signal }) => readProfile(signal), enabled: isAuthenticated, retry: false })
+  useEffect(() => { if (identity.data) { useAuthStore.getState().updateUser(identity.data); void i18n.changeLanguage(identity.data.preferred_language) } }, [identity.data])
   useEffect(() => {
     if (isAuthenticated) {
-      scheduleWeatherChecks()
+      return scheduleWeatherChecks()
     }
   }, [isAuthenticated])
 
@@ -71,6 +83,10 @@ export default function App() {
     <Routes>
       {/* Normal authentication */}
       <Route path="/login" element={<Login />} />
+      <Route path="/system-admin-login" element={<Login systemAdmin />} />
+      <Route path="/profile" element={<Protected allow={['FARMER']}><Profile /></Protected>} />
+      <Route path="/feedback" element={<Protected allow={['FARMER']}><Feedback /></Protected>} />
+      <Route path="/system-admin" element={<SystemAdminGuard><AppShell><SystemAdmin /></AppShell></SystemAdminGuard>} />
       <Route path="/register" element={<Register />} />
       <Route path="/staff-login" element={<StaffLogin />} />
 

@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Bug, CheckCircle2, Info, MessageCircle, ScanSearch, ShieldAlert } from 'lucide-react'
 import Card from '@/components/ui/Card'
@@ -9,15 +10,15 @@ import type { PestDetectionResult } from '@/lib/pestApi'
 function sourceLabel(source: PestDetectionResult['source']) {
   switch (source) {
     case 'fine_tuned':
-      return 'Selective Fine-Tuned DenseNet121'
+      return uiText('Selective Fine-Tuned DenseNet121')
     case 'few_shot':
-      return 'Prototype Few-Shot Baseline'
+      return uiText('Prototype Few-Shot Baseline')
     case 'ood':
       return 'Mahalanobis OOD'
     case 'quality_check':
-      return 'Image Quality Check'
+      return uiText('Image Quality Check')
     default:
-      return 'DenseNet121 Base Model'
+      return uiText('DenseNet121 Base Model')
   }
 }
 
@@ -34,7 +35,7 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div>
-              <h3 className="font-sinhala text-lg font-bold text-forest">Image Quality Too Low</h3>
+              <h3 className="font-sinhala text-lg font-bold text-forest">{uiText("Image Quality Too Low")}</h3>
               <p className="mt-1 text-sm text-forest-muted">{result.message}</p>
             </div>
           </div>
@@ -54,20 +55,20 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
             </div>
             <div className="min-w-0">
               <div className="mb-1 flex items-center gap-2">
-                <Badge tone="amber">Unknown / Rejected</Badge>
+                <Badge tone="amber">{uiText("Unknown / Rejected")}</Badge>
               </div>
-              <h3 className="font-sinhala text-lg font-bold text-forest">Unknown Pest</h3>
+              <h3 className="font-sinhala text-lg font-bold text-forest">{uiText("Unknown Pest")}</h3>
               <p className="mt-1 text-sm leading-5 text-forest-muted">{result.message}</p>
               {result.ood_score !== null && (
                 <p className="mt-2 text-xs text-forest-muted">
-                  OOD method: {result.ood_method} · Score: {result.ood_score}
+                  {uiText("OOD method:")}{result.ood_method} {uiText("· Score:")}{result.ood_score}
                 </p>
               )}
             </div>
           </div>
         </Card>
         <QualityCard quality={quality} />
-        <InfoCard text="If this is a real new pest, use Teach New Pest and provide 5–20 labelled images." />
+        <InfoCard text={uiText("If this is a real new pest, use Teach New Pest and provide 5–20 labelled images.")} />
       </div>
     )
   }
@@ -100,10 +101,10 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
 
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="rounded-lg bg-beige px-2.5 py-1.5 text-[11px] text-forest-muted">
-            Source: {sourceLabel(result.source)}
+            {uiText("Source:")}{sourceLabel(result.source)}
           </span>
           <span className="rounded-lg bg-beige px-2.5 py-1.5 text-[11px] text-forest-muted">
-            OOD: {result.ood_method}
+            {uiText("OOD:")}{result.ood_method}
           </span>
         </div>
 
@@ -114,7 +115,7 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
 
         {result.few_shot_similarity !== null && (
           <div className="mt-3 text-xs text-forest-muted">
-            Learned-class score: <strong className="text-forest">{formatConfidence(result.few_shot_similarity)}</strong>
+            {uiText("Learned-class score:")}<strong className="text-forest">{formatConfidence(result.few_shot_similarity)}</strong>
           </div>
         )}
       </Card>
@@ -125,23 +126,22 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
         <Card>
           <div className="mb-3 flex items-center gap-2">
             <ScanIcon />
-            <h4 className="text-sm font-bold text-forest">Explainable AI · Grad-CAM</h4>
+            <h4 className="text-sm font-bold text-forest">{uiText("Explainable AI · Grad-CAM")}</h4>
           </div>
 
           <div className="rounded-xl bg-beige/30 p-2">
             <img
               src={`data:image/jpeg;base64,${result.gradcam_image_base64}`}
-              alt="Grad-CAM explanation heatmap"
+              alt={uiText("Grad-CAM explanation heatmap")}
               className="w-full rounded-lg object-cover"
             />
           </div>
 
           <p className="mt-2 text-xs leading-5 text-forest-muted">
-            Highlighted regions show the areas that contributed most to the model prediction.
-          </p>
+            {uiText("Highlighted regions show the areas that contributed most to the model prediction.")}</p>
         </Card>
       ) : (
-        <InfoCard text="Grad-CAM is unavailable for this result because the image was rejected or treated as a hard unknown." />
+        <InfoCard text={uiText("Grad-CAM is unavailable for this result because the image was rejected or treated as a hard unknown.")} />
       )}
 
       <Button
@@ -156,8 +156,7 @@ export default function PestResult({ result }: { result: PestDetectionResult }) 
         }
       >
         <MessageCircle className="h-4 w-4" />
-        ප්‍රතිකාර | Treatment
-      </Button>
+        {uiText("ප්‍රතිකාර | Treatment")}</Button>
     </div>
   )
 }
@@ -170,7 +169,7 @@ function QualityCard({
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
-        <h4 className="text-sm font-bold text-forest">Image Quality</h4>
+        <h4 className="text-sm font-bold text-forest">{uiText("Image Quality")}</h4>
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
           quality.passed
             ? 'bg-green-soft/10 text-green-soft'
@@ -181,11 +180,11 @@ function QualityCard({
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <Metric label="Blur score" value={quality.blur_score} />
-        <Metric label="Brightness" value={quality.brightness} />
-        <Metric label="Contrast" value={quality.contrast} />
-        <Metric label="Edge density" value={quality.edge_density} />
-        <Metric label="Resolution" value={quality.resolution} />
+        <Metric label={uiText("Blur score")} value={quality.blur_score} />
+        <Metric label={uiText("Brightness")} value={quality.brightness} />
+        <Metric label={uiText("Contrast")} value={quality.contrast} />
+        <Metric label={uiText("Edge density")} value={quality.edge_density} />
+        <Metric label={uiText("Resolution")} value={quality.resolution} />
       </div>
 
       {quality.warnings.length > 0 && (

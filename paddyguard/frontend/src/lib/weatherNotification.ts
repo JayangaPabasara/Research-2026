@@ -5,6 +5,7 @@
  * Sends a browser notification with the current weather conditions for
  * that district, and keeps a small history the bell icon can show.
  */
+import i18n from '@/i18n'
 
 // District center coordinates for Sri Lanka
 const DISTRICT_COORDS: Record<string, { lat: number; lon: number }> = {
@@ -44,6 +45,8 @@ export interface StoredNotification {
   id: string
   title: string
   body: string
+  body_en?: string
+  body_si?: string
   timestamp: number
   read: boolean
 }
@@ -61,11 +64,13 @@ export function getNotifications(): StoredNotification[] {
   }
 }
 
-function saveNotification(title: string, body: string): void {
+function saveNotification(title: string, body: string, alert?: WeatherAlert): void {
   const record: StoredNotification = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     title,
     body,
+    body_en: alert?.message,
+    body_si: alert?.sinhalaMessage,
     timestamp: Date.now(),
     read: false,
   }
@@ -141,10 +146,10 @@ function buildCurrentWeatherMessage(
 }
 
 async function sendBrowserNotification(alert: WeatherAlert): Promise<void> {
-  const title = 'PaddyGuard AI — කාලගුණ යාවත්කාලීනය'
-  const body = `${alert.sinhalaMessage}\n\n${alert.message}`
+  const title = i18n.language === 'si' ? 'PaddyGuard AI — කාලගුණ යාවත්කාලීනය' : 'PaddyGuard AI — Weather update'
+  const body = i18n.language === 'si' ? alert.sinhalaMessage : alert.message
 
-  saveNotification(title, body)
+  saveNotification(title, body, alert)
 
   if (!('Notification' in window)) return
   if (Notification.permission !== 'granted') return
@@ -193,9 +198,10 @@ export async function checkWeatherAndNotify(): Promise<void> {
   }
 }
 
-export function scheduleWeatherChecks(): void {
+export function scheduleWeatherChecks(): () => void {
   // Check on app load
   checkWeatherAndNotify()
   // Check every 6 hours while app is open
-  setInterval(checkWeatherAndNotify, 6 * 60 * 60 * 1000)
+  const timer = setInterval(checkWeatherAndNotify, 6 * 60 * 60 * 1000)
+  return () => clearInterval(timer)
 }

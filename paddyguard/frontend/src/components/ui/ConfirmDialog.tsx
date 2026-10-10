@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import Modal from './Modal'
 import Button from './Button'
 
@@ -27,10 +28,9 @@ export default function ConfirmDialog({
       <p className="text-sm text-forest-light">{message}</p>
       <div className="mt-5 flex justify-end gap-3">
         <Button variant="ghost" onClick={onCancel} disabled={loading}>
-          Cancel
-        </Button>
+          {uiText("Cancel")}</Button>
         <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>
-          {confirmLabel}
+          {uiText(confirmLabel)}
         </Button>
       </div>
     </Modal>

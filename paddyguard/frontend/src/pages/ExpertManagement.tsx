@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import toast from 'react-hot-toast'
@@ -29,7 +30,7 @@ export default function ExpertManagement() {
     try {
       setExperts(await getExperts())
     } catch {
-      toast.error('Failed to load experts')
+      toast.error(uiText("Failed to load experts"))
     } finally {
       setLoading(false)
     }
@@ -41,7 +42,7 @@ export default function ExpertManagement() {
     setCreating(true)
     try {
       await createExpert(name, username, password)
-      toast.success('Expert created')
+      toast.success(uiText("Expert created"))
       setName('')
       setUsername('')
       setPassword('')
@@ -60,7 +61,7 @@ export default function ExpertManagement() {
       await toggleExpert(id)
       load()
     } catch {
-      toast.error('Failed to update status')
+      toast.error(uiText("Failed to update status"))
     } finally {
       setTogglingId(null)
     }
@@ -71,34 +72,33 @@ export default function ExpertManagement() {
       <Card className="lg:col-span-1">
         <div className="mb-4 flex items-center gap-2">
           <UserPlus className="h-5 w-5 text-amber" />
-          <h3 className="font-semibold text-forest">Add Expert</h3>
+          <h3 className="font-semibold text-forest">{uiText("Add Expert")}</h3>
         </div>
         <form onSubmit={handleCreate} className="space-y-3">
-          <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
-          <Input label="Username" value={username} onChange={(e) => setUsername(e.target.value)} required autoComplete="username" />
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
+          <Input label={uiText("Name")} value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+          <Input label={uiText("Username")} value={username} onChange={(e) => setUsername(e.target.value)} required autoComplete="username" />
+          <Input label={uiText("Password")} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="new-password" />
           <Button type="submit" className="w-full" loading={creating}>
-            Create Expert
-          </Button>
+            {uiText("Create Expert")}</Button>
         </form>
       </Card>
 
       <Card className="lg:col-span-2">
-        <h3 className="mb-4 font-semibold text-forest">Experts</h3>
+        <h3 className="mb-4 font-semibold text-forest">{uiText("Experts")}</h3>
         {loading ? (
-          <LoadingSpinner labelEn="Loading experts..." />
+          <LoadingSpinner labelEn={uiText("Loading experts...")} />
         ) : experts.length === 0 ? (
-          <p className="py-6 text-center text-sm text-forest-muted">No experts yet.</p>
+          <p className="py-6 text-center text-sm text-forest-muted">{uiText("No experts yet.")}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[480px] text-left text-sm">
               <thead className="border-b border-beige text-xs uppercase text-forest-muted">
                 <tr>
-                  <th className="py-2">Name</th>
-                  <th className="py-2">Username</th>
-                  <th className="py-2">Created</th>
-                  <th className="py-2">Status</th>
-                  <th className="py-2 text-right">Action</th>
+                  <th className="py-2">{uiText("Name")}</th>
+                  <th className="py-2">{uiText("Username")}</th>
+                  <th className="py-2">{uiText("Created")}</th>
+                  <th className="py-2">{uiText("Status")}</th>
+                  <th className="py-2 text-right">{uiText("Action")}</th>
                 </tr>
               </thead>
               <tbody>

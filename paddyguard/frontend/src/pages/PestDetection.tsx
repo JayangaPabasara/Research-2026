@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import {
@@ -226,8 +227,7 @@ export default function PestDetection() {
           }`}
         >
           <ScanSearch className="h-4 w-4" />
-          Detect Pest
-        </button>
+          {uiText("Detect Pest")}</button>
 
         {/* HISTORY */}
 
@@ -241,8 +241,7 @@ export default function PestDetection() {
           }`}
         >
           <HistoryIcon className="h-4 w-4" />
-          History
-        </button>
+          {uiText("History")}</button>
 
       </div>
 
@@ -316,7 +315,7 @@ function DetectPanel() {
       )
     ) {
       setError(
-        'Please select a JPG, PNG or WEBP image.',
+        uiText("Please select a JPG, PNG or WEBP image."),
       )
       return
     }
@@ -326,7 +325,7 @@ function DetectPanel() {
       10 * 1024 * 1024
     ) {
       setError(
-        'Image is too large. Maximum size is 10 MB.',
+        uiText("Image is too large. Maximum size is 10 MB."),
       )
       return
     }
@@ -364,7 +363,7 @@ function DetectPanel() {
   async function handleDetect() {
     if (!file) {
       toast.error(
-        'Please select a pest image.',
+        uiText("Please select a pest image."),
       )
       return
     }
@@ -483,7 +482,7 @@ function DetectPanel() {
       const message =
         getErrorMessage(
           err,
-          'Detection failed. Please try again.',
+          uiText("Detection failed. Please try again."),
         )
 
       setError(message)
@@ -508,12 +507,10 @@ function DetectPanel() {
           <div>
 
             <h2 className="text-lg font-bold text-forest">
-              1. Upload image
-            </h2>
+              {uiText("1. Upload image")}</h2>
 
             <p className="mt-1 text-xs text-forest-muted">
-              Upload a clear rice pest photo for all AI checks.
-            </p>
+              {uiText("Upload a clear rice pest photo for all AI checks.")}</p>
 
           </div>
 
@@ -536,12 +533,10 @@ function DetectPanel() {
             </span>
 
             <span className="text-base font-semibold text-forest">
-              Choose pest image
-            </span>
+              {uiText("Choose pest image")}</span>
 
             <span className="text-xs text-forest-muted">
-              JPG, PNG or WEBP · maximum 10 MB
-            </span>
+              {uiText("JPG, PNG or WEBP · maximum 10 MB")}</span>
 
           </button>
 
@@ -551,7 +546,7 @@ function DetectPanel() {
 
             <img
               src={preview}
-              alt="Selected pest"
+              alt={uiText("Selected pest")}
               className="mx-auto max-h-[420px] w-full rounded-lg object-contain"
             />
 
@@ -559,7 +554,7 @@ function DetectPanel() {
               type="button"
               onClick={clearFile}
               className="absolute right-5 top-5 rounded-full bg-white p-2 text-forest shadow"
-              aria-label="Remove image"
+              aria-label={uiText("Remove image")}
             >
               <X className="h-4 w-4" />
             </button>
@@ -595,8 +590,7 @@ function DetectPanel() {
               onClick={clearFile}
               className="shrink-0 text-red-soft hover:underline"
             >
-              Remove
-            </button>
+              {uiText("Remove")}</button>
 
           </div>
 
@@ -611,7 +605,7 @@ function DetectPanel() {
         >
           {detecting
             ? 'Analyzing…'
-            : 'හඳුනාගන්න | Detect Pest'}
+            : uiText("හඳුනාගන්න | Detect Pest")}
         </Button>
 
         {error && (
@@ -628,21 +622,21 @@ function DetectPanel() {
             icon={
               <ShieldCheck className="h-4 w-4" />
             }
-            label="Quality Check"
+            label={uiText("Quality Check")}
           />
 
           <FeatureMini
             icon={
               <ScanSearch className="h-4 w-4" />
             }
-            label="Grad-CAM"
+            label={uiText("Grad-CAM")}
           />
 
           <FeatureMini
             icon={
               <BrainCircuit className="h-4 w-4" />
             }
-            label="OOD Detection"
+            label={uiText("OOD Detection")}
           />
 
         </div>
@@ -659,12 +653,10 @@ function DetectPanel() {
           <div>
 
             <h2 className="text-lg font-bold text-forest">
-              2. AI analysis
-            </h2>
+              {uiText("2. AI analysis")}</h2>
 
             <p className="mt-1 text-xs text-forest-muted">
-              Prediction, quality, OOD and explainable AI results.
-            </p>
+              {uiText("Prediction, quality, OOD and explainable AI results.")}</p>
 
           </div>
 
@@ -688,12 +680,10 @@ function DetectPanel() {
             </div>
 
             <h3 className="mt-4 font-semibold text-forest">
-              Waiting for an image
-            </h3>
+              {uiText("Waiting for an image")}</h3>
 
             <p className="mt-1 max-w-xs text-xs leading-5 text-forest-muted">
-              Upload and analyze a pest image to test all detection features.
-            </p>
+              {uiText("Upload and analyze a pest image to test all detection features.")}</p>
 
           </div>
 
@@ -756,12 +746,10 @@ function AnalysisProgress({
               <div>
 
                 <h3 className="text-base font-bold text-forest">
-                  Analyzing Pest Image
-                </h3>
+                  {uiText("Analyzing Pest Image")}</h3>
 
                 <p className="text-[10px] text-forest-muted">
-                  PaddyGuard AI Vision Engine
-                </p>
+                  {uiText("PaddyGuard AI Vision Engine")}</p>
 
               </div>
 
@@ -784,7 +772,7 @@ function AnalysisProgress({
 
             <img
               src={preview}
-              alt="Analyzing pest"
+              alt={uiText("Analyzing pest")}
               className="h-full w-full object-cover opacity-80"
             />
 
@@ -803,8 +791,7 @@ function AnalysisProgress({
           <div className="absolute left-0 right-0 top-0 h-0.5 bg-green-soft shadow-[0_0_12px_rgba(34,197,94,0.8)] animate-[bounce_1.8s_ease-in-out_infinite]" />
 
           <div className="absolute bottom-2 left-2 rounded-md bg-white/90 px-2 py-1 text-[9px] font-semibold text-forest shadow-sm">
-            AI VISION SCAN
-          </div>
+            {uiText("AI VISION SCAN")}</div>
 
         </div>
 
@@ -816,8 +803,7 @@ function AnalysisProgress({
           <div className="mb-2 flex items-center justify-between text-[10px]">
 
             <span className="font-semibold text-forest-muted">
-              AI pipeline progress
-            </span>
+              {uiText("AI pipeline progress")}</span>
 
             <span className="font-bold text-green-soft">
               {activeStep + 1}/{ANALYSIS_STEPS.length}
@@ -898,14 +884,13 @@ function AnalysisProgress({
                         : 'font-medium'
                     }`}
                   >
-                    {step}
+                    {uiText(step)}
                   </span>
 
                   {active && (
 
                     <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-green-soft">
-                      processing
-                    </span>
+                      {uiText("processing")}</span>
 
                   )}
 
@@ -924,9 +909,7 @@ function AnalysisProgress({
 
           <ShieldCheck className="h-3.5 w-3.5 text-green-soft" />
 
-          Quality • OOD • Grad-CAM
-
-        </div>
+          {uiText("Quality • OOD • Grad-CAM")}</div>
 
       </div>
 
@@ -949,7 +932,7 @@ function FeatureMini({
   return (
     <div className="flex flex-col items-center gap-1 rounded-xl bg-beige/50 px-2 py-2 text-[10px] font-semibold text-forest-muted">
       {icon}
-      {label}
+      {uiText(label)}
     </div>
   )
 }

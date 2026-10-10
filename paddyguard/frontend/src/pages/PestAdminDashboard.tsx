@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
@@ -124,15 +125,15 @@ export default function PestAdminDashboard() {
     )
 
     if (invalid.length > 0) {
-      setError('Only JPG, PNG and WEBP images are allowed.')
+      setError(uiText("Only JPG, PNG and WEBP images are allowed."))
       setFiles([])
       return
     }
 
     if (selected.length < 5) {
-      setError('Select between 5 and 20 labelled images.')
+      setError(uiText("Select between 5 and 20 labelled images."))
     } else if (selected.length > 20) {
-      setError('Maximum 20 labelled images are allowed.')
+      setError(uiText("Maximum 20 labelled images are allowed."))
     } else {
       setError('')
     }
@@ -147,12 +148,12 @@ export default function PestAdminDashboard() {
     const name = className.trim()
 
     if (!name) {
-      setError('Enter a name for the new pest.')
+      setError(uiText("Enter a name for the new pest."))
       return
     }
 
     if (files.length < 5 || files.length > 20) {
-      setError('Select between 5 and 20 labelled images.')
+      setError(uiText("Select between 5 and 20 labelled images."))
       return
     }
 
@@ -238,12 +239,10 @@ export default function PestAdminDashboard() {
 
           <div>
             <h1 className="text-lg font-bold">
-              Pest Model Administration
-            </h1>
+              {uiText("Pest Model Administration")}</h1>
 
             <p className="mt-1 text-xs text-white/70">
-              Logged in as {pestAdmin.username} · PEST ADMIN
-            </p>
+              {uiText("Logged in as")}{pestAdmin.username} {uiText("· PEST ADMIN")}</p>
           </div>
         </div>
 
@@ -253,8 +252,7 @@ export default function PestAdminDashboard() {
           className="flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4" />
-          Logout
-        </button>
+          {uiText("Logout")}</button>
       </div>
 
       {/* Security notice */}
@@ -266,14 +264,10 @@ export default function PestAdminDashboard() {
 
           <div>
             <h2 className="text-sm font-bold text-forest">
-              Authorized Pest Model Management
-            </h2>
+              {uiText("Authorized Pest Model Management")}</h2>
 
             <p className="mt-1 text-xs leading-5 text-forest-muted">
-              This section is restricted to the Pest Administrator.
-              You can add new pest classes using selective
-              fine-tuning or create a prototype baseline.
-            </p>
+              {uiText("This section is restricted to the Pest Administrator. You can add new pest classes using selective fine-tuning or create a prototype baseline.")}</p>
           </div>
         </div>
       </Card>
@@ -283,14 +277,10 @@ export default function PestAdminDashboard() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-forest">
-              Few-Shot New Pest Learning
-            </h2>
+              {uiText("Few-Shot New Pest Learning")}</h2>
 
             <p className="mt-1 max-w-3xl text-xs leading-5 text-forest-muted">
-              Adapt DenseNet121 to a new rice pest using only
-              5–20 labelled images. The original model is never
-              overwritten.
-            </p>
+              {uiText("Adapt DenseNet121 to a new rice pest using only 5–20 labelled images. The original model is never overwritten.")}</p>
           </div>
 
           <BrainCircuit className="h-6 w-6 shrink-0 text-green-soft" />
@@ -298,36 +288,29 @@ export default function PestAdminDashboard() {
 
         <div className="mt-5 rounded-xl border border-green-soft/20 bg-green-soft/5 p-4 text-xs leading-5 text-forest">
           <span className="font-bold">
-            Research pipeline:
-          </span>{' '}
-          Unknown Pest → collect 5–20 labelled examples →
-          selectively fine-tune the final DenseNet121 layers →
-          test recognition of the new pest without retraining
-          the whole model from scratch.
-        </div>
+            {uiText("Research pipeline:")}</span>{' '}
+          {uiText("Unknown Pest → collect 5–20 labelled examples → selectively fine-tune the final DenseNet121 layers → test recognition of the new pest without retraining the whole model from scratch.")}</div>
 
         {/* Inputs */}
         <div className="mt-6 grid gap-4 md:grid-cols-2">
 
           <label className="block">
             <span className="mb-2 block text-xs font-bold text-forest-muted">
-              New pest name
-            </span>
+              {uiText("New pest name")}</span>
 
             <input
               value={className}
               onChange={(event) =>
                 setClassName(event.target.value)
               }
-              placeholder="e.g. Rice Armyworm"
+              placeholder={uiText("e.g. Rice Armyworm")}
               className="w-full rounded-xl border border-beige bg-white px-3 py-3 text-sm text-forest outline-none transition focus:border-green-soft"
             />
           </label>
 
           <div>
             <span className="mb-2 block text-xs font-bold text-forest-muted">
-              Labelled images (5–20)
-            </span>
+              {uiText("Labelled images (5–20)")}</span>
 
             <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-forest-muted/40 bg-beige/20 px-3 py-3 text-xs text-forest transition hover:border-green-soft">
               <Upload className="h-4 w-4 text-amber" />
@@ -378,19 +361,15 @@ export default function PestAdminDashboard() {
           >
             <div className="flex items-center gap-2 text-sm font-bold text-forest">
               <BrainCircuit className="h-4 w-4 text-green-soft" />
-              Selective Fine-Tuning
-            </div>
+              {uiText("Selective Fine-Tuning")}</div>
 
             <p className="mt-1 text-xs leading-5 text-forest-muted">
-              Recommended research method. Fine-tunes selected
-              DenseNet121 layers instead of the entire network.
-            </p>
+              {uiText("Recommended research method. Fine-tunes selected DenseNet121 layers instead of the entire network.")}</p>
 
             {method === 'fine_tune' && (
               <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-green-soft">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Selected
-              </div>
+                {uiText("Selected")}</div>
             )}
           </button>
 
@@ -404,19 +383,15 @@ export default function PestAdminDashboard() {
             }`}
           >
             <div className="text-sm font-bold text-forest">
-              Prototype Baseline
-            </div>
+              {uiText("Prototype Baseline")}</div>
 
             <p className="mt-1 text-xs leading-5 text-forest-muted">
-              Frozen DenseNet121 embeddings used as a research
-              comparison baseline.
-            </p>
+              {uiText("Frozen DenseNet121 embeddings used as a research comparison baseline.")}</p>
 
             {method === 'prototype' && (
               <div className="mt-3 flex items-center gap-1 text-[11px] font-semibold text-green-soft">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Selected
-              </div>
+                {uiText("Selected")}</div>
             )}
           </button>
         </div>
@@ -461,27 +436,23 @@ export default function PestAdminDashboard() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-forest">
-              Learned Pest Classes
-            </h2>
+              {uiText("Learned Pest Classes")}</h2>
 
             <p className="mt-1 text-xs text-forest-muted">
-              Pest classes currently available to the model.
-            </p>
+              {uiText("Pest classes currently available to the model.")}</p>
           </div>
 
           <span className="rounded-full bg-beige px-3 py-1 text-xs font-semibold text-forest-muted">
-            {classes.length} learned
-          </span>
+            {classes.length} {uiText("learned")}</span>
         </div>
 
         {classesLoading ? (
           <div className="py-8 text-center text-sm text-forest-muted">
-            Loading learned classes…
-          </div>
+            {uiText("Loading learned classes…")}</div>
         ) : classes.length === 0 ? (
           <EmptyState
-            title="No pest classes learned yet"
-            description="Use the form above to adapt the model to a new pest."
+            title={uiText("No pest classes learned yet")}
+            description={uiText("Use the form above to adapt the model to a new pest.")}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -496,8 +467,7 @@ export default function PestAdminDashboard() {
                   </p>
 
                   <p className="mt-1 text-[10px] text-green-soft">
-                    Learned class
-                  </p>
+                    {uiText("Learned class")}</p>
                 </div>
 
                 <button
@@ -518,33 +488,23 @@ export default function PestAdminDashboard() {
       {/* How it works */}
       <Card>
         <h2 className="text-sm font-bold text-forest">
-          How Pest Model Adaptation Works
-        </h2>
+          {uiText("How Pest Model Adaptation Works")}</h2>
 
         <ol className="mt-3 list-decimal space-y-2 pl-5 text-xs leading-5 text-forest-muted">
           <li>
-            Collect 5–20 images belonging to the same new pest.
-          </li>
+            {uiText("Collect 5–20 images belonging to the same new pest.")}</li>
           <li>
-            Enter the new pest class name.
-          </li>
+            {uiText("Enter the new pest class name.")}</li>
           <li>
-            Selective Fine-Tuning keeps the original DenseNet121
-            knowledge in the frozen layers.
-          </li>
+            {uiText("Selective Fine-Tuning keeps the original DenseNet121 knowledge in the frozen layers.")}</li>
           <li>
-            Selected deeper layers and the classifier are fine-tuned.
-          </li>
+            {uiText("Selected deeper layers and the classifier are fine-tuned.")}</li>
           <li>
-            The original base checkpoint is never overwritten.
-          </li>
+            {uiText("The original base checkpoint is never overwritten.")}</li>
           <li>
-            The adapted model is saved separately.
-          </li>
+            {uiText("The adapted model is saved separately.")}</li>
           <li>
-            The new pest can then be tested from the normal Pest
-            Detection page.
-          </li>
+            {uiText("The new pest can then be tested from the normal Pest Detection page.")}</li>
         </ol>
       </Card>
     </div>

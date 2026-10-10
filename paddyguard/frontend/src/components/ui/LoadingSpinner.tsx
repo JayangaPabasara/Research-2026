@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { uiText } from '@/i18n/text'
 
 interface LoadingSpinnerProps {
   size?: number
@@ -10,8 +11,7 @@ export default function LoadingSpinner({ size = 40, label, labelEn }: LoadingSpi
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-10 text-forest">
       <Loader2 style={{ width: size, height: size }} className="animate-spin" />
-      {label && <p className="font-sinhala text-lg font-medium">{label}</p>}
-      {labelEn && <p className="text-sm text-forest-muted">{labelEn}</p>}
+      {(labelEn || label) && <p role="status" className="text-sm text-forest-muted">{uiText(labelEn || label || '')}</p>}
     </div>
   )
 }

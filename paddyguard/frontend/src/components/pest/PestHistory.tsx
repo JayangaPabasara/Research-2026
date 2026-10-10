@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useMemo, useState } from 'react'
 import {
   Activity,
@@ -178,8 +179,8 @@ export default function PestHistory({
     return (
       <Card className="mx-auto max-w-6xl">
         <EmptyState
-          title="No pest detections yet"
-          description="Your analyzed pest images and AI results will appear here."
+          title={uiText("No pest detections yet")}
+          description={uiText("Your analyzed pest images and AI results will appear here.")}
         />
       </Card>
     )
@@ -194,14 +195,11 @@ export default function PestHistory({
           <Activity className="h-5 w-5 text-green-soft" />
 
           <h2 className="text-xl font-bold text-forest">
-            Pest Detection History
-          </h2>
+            {uiText("Pest Detection History")}</h2>
         </div>
 
         <p className="mt-1 text-sm text-forest-muted">
-          Review your previous AI pest detection results,
-          confidence scores and research methods.
-        </p>
+          {uiText("Review your previous AI pest detection results, confidence scores and research methods.")}</p>
       </div>
 
       {/* STATISTICS */}
@@ -209,25 +207,25 @@ export default function PestHistory({
 
         <StatCard
           icon={<Database className="h-5 w-5" />}
-          label="Total Scans"
+          label={uiText("Total Scans")}
           value={stats.total}
         />
 
         <StatCard
           icon={<CheckCircle2 className="h-5 w-5" />}
-          label="Known Pests"
+          label={uiText("Known Pests")}
           value={stats.known}
         />
 
         <StatCard
           icon={<ShieldAlert className="h-5 w-5" />}
-          label="Unknown"
+          label={uiText("Unknown")}
           value={stats.unknown}
         />
 
         <StatCard
           icon={<BarChart3 className="h-5 w-5" />}
-          label="Avg. Confidence"
+          label={uiText("Avg. Confidence")}
           value={`${(stats.average * 100).toFixed(1)}%`}
         />
 
@@ -243,14 +241,10 @@ export default function PestHistory({
 
           <div>
             <p className="text-xs font-bold text-forest">
-              Adaptive Learning Activity
-            </p>
+              {uiText("Adaptive Learning Activity")}</p>
 
             <p className="text-xs text-forest-muted">
-              {stats.fineTuned} detection
-              {stats.fineTuned !== 1 ? 's' : ''} used
-              a selectively fine-tuned pest model.
-            </p>
+              {stats.fineTuned} {uiText("detection")}{stats.fineTuned !== 1 ? 's' : ''} {uiText("used a selectively fine-tuned pest model.")}</p>
           </div>
 
         </div>
@@ -271,7 +265,7 @@ export default function PestHistory({
               onChange={(event) =>
                 setSearch(event.target.value)
               }
-              placeholder="Search pest or detection method..."
+              placeholder={uiText("Search pest or detection method...")}
               className="w-full rounded-xl border border-beige bg-beige/20 py-2.5 pl-9 pr-3 text-sm text-forest outline-none transition focus:border-green-soft"
             />
 
@@ -284,29 +278,25 @@ export default function PestHistory({
               active={filter === 'all'}
               onClick={() => setFilter('all')}
             >
-              All
-            </FilterButton>
+              {uiText("All")}</FilterButton>
 
             <FilterButton
               active={filter === 'known'}
               onClick={() => setFilter('known')}
             >
-              Known
-            </FilterButton>
+              {uiText("Known")}</FilterButton>
 
             <FilterButton
               active={filter === 'unknown'}
               onClick={() => setFilter('unknown')}
             >
-              Unknown
-            </FilterButton>
+              {uiText("Unknown")}</FilterButton>
 
             <FilterButton
               active={filter === 'fine_tuned'}
               onClick={() => setFilter('fine_tuned')}
             >
-              Fine-Tuned
-            </FilterButton>
+              {uiText("Fine-Tuned")}</FilterButton>
 
           </div>
 
@@ -316,8 +306,7 @@ export default function PestHistory({
             onClick={() => setClearDialog(true)}
             className="rounded-xl px-3 py-2 text-xs font-semibold text-red-soft hover:bg-red-soft/10"
           >
-            Clear History
-          </button>
+            {uiText("Clear History")}</button>
 
         </div>
 
@@ -327,8 +316,8 @@ export default function PestHistory({
       {filteredEntries.length === 0 ? (
         <Card>
           <EmptyState
-            title="No matching detections"
-            description="Try another search or filter."
+            title={uiText("No matching detections")}
+            description={uiText("Try another search or filter.")}
           />
         </Card>
       ) : (
@@ -340,32 +329,25 @@ export default function PestHistory({
               <tr>
 
                 <th className="px-4 py-3">
-                  Image
-                </th>
+                  {uiText("Image")}</th>
 
                 <th className="px-4 py-3">
-                  Pest
-                </th>
+                  {uiText("Pest")}</th>
 
                 <th className="px-4 py-3">
-                  Date
-                </th>
+                  {uiText("Date")}</th>
 
                 <th className="px-4 py-3">
-                  Confidence
-                </th>
+                  {uiText("Confidence")}</th>
 
                 <th className="px-4 py-3">
-                  Status
-                </th>
+                  {uiText("Status")}</th>
 
                 <th className="px-4 py-3">
-                  AI Method
-                </th>
+                  {uiText("AI Method")}</th>
 
                 <th className="px-4 py-3 text-right">
-                  Action
-                </th>
+                  {uiText("Action")}</th>
 
               </tr>
             </thead>
@@ -410,8 +392,7 @@ export default function PestHistory({
                     </p>
 
                     <p className="mt-0.5 text-[10px] text-forest-muted">
-                      Click to view details
-                    </p>
+                      {uiText("Click to view details")}</p>
 
                   </td>
 
@@ -447,8 +428,8 @@ export default function PestHistory({
                       }
                     >
                       {entry.is_ood
-                        ? 'Unknown'
-                        : 'Known'}
+                        ? uiText("Unknown")
+                        : uiText("Known")}
                     </Badge>
 
                   </td>
@@ -480,7 +461,7 @@ export default function PestHistory({
                         )
                       }
                       className="rounded-lg p-2 text-red-soft transition hover:bg-red-soft/10"
-                      title="Delete detection"
+                      title={uiText("Delete detection")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -518,8 +499,7 @@ export default function PestHistory({
 
               <div>
                 <p className="text-xs font-semibold uppercase text-forest-muted">
-                  Detection Details
-                </p>
+                  {uiText("Detection Details")}</p>
 
                 <h3 className="mt-1 text-xl font-bold capitalize text-forest">
                   {selectedEntry.pest_name.replace(
@@ -554,7 +534,7 @@ export default function PestHistory({
             <div className="mt-5 grid grid-cols-2 gap-3">
 
               <DetailItem
-                label="Prediction"
+                label={uiText("Prediction")}
                 value={selectedEntry.pest_name.replace(
                   /_/g,
                   ' ',
@@ -562,37 +542,37 @@ export default function PestHistory({
               />
 
               <DetailItem
-                label="Confidence"
+                label={uiText("Confidence")}
                 value={formatConfidence(
                   selectedEntry.confidence,
                 )}
               />
 
               <DetailItem
-                label="Status"
+                label={uiText("Status")}
                 value={
                   selectedEntry.is_ood
-                    ? 'Unknown Pest'
+                    ? uiText("Unknown Pest")
                     : 'Known Pest'
                 }
               />
 
               <DetailItem
-                label="AI Method"
+                label={uiText("AI Method")}
                 value={sourceLabel(
                   selectedEntry.source,
                 )}
               />
 
               <DetailItem
-                label="Detected At"
+                label={uiText("Detected At")}
                 value={formatDate(
                   selectedEntry.timestamp,
                 )}
               />
 
               <DetailItem
-                label="Record ID"
+                label={uiText("Record ID")}
                 value={selectedEntry.id.slice(
                   0,
                   8,
@@ -609,9 +589,9 @@ export default function PestHistory({
       {/* DELETE DIALOG */}
       <ConfirmDialog
         isOpen={pendingDelete !== null}
-        title="Delete pest detection"
-        message="This detection will be permanently removed from your history."
-        confirmLabel="Delete"
+        title={uiText("Delete pest detection")}
+        message={uiText("This detection will be permanently removed from your history.")}
+        confirmLabel={uiText("Delete")}
         danger
         loading={deleting}
         onConfirm={handleConfirmDelete}
@@ -623,9 +603,9 @@ export default function PestHistory({
       {/* CLEAR DIALOG */}
       <ConfirmDialog
         isOpen={clearDialog}
-        title="Clear pest history"
-        message="All your pest detection history will be permanently removed."
-        confirmLabel="Clear History"
+        title={uiText("Clear pest history")}
+        message={uiText("All your pest detection history will be permanently removed.")}
+        confirmLabel={uiText("Clear History")}
         danger
         onConfirm={handleClear}
         onCancel={() =>

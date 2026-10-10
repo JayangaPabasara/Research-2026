@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 import Button from '@/components/ui/Button'
@@ -54,7 +55,7 @@ export default function FollowUpDialog({
 
           <div className="mb-4 flex items-center gap-2 rounded-xl bg-amber-light px-4 py-2.5 text-sm text-amber-dark">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>අඩු විශ්වාසනීයත්වයක් ({formatConfidence(confidence)}) — තවත් විස්තර අවශ්‍යයි</span>
+            <span>{uiText("අඩු විශ්වාසනීයත්වයක් (")}{formatConfidence(confidence)}{uiText(") — තවත් විස්තර අවශ්‍යයි")}</span>
           </div>
 
           <div className="mb-6 rounded-2xl bg-beige p-5 text-center">
@@ -63,40 +64,36 @@ export default function FollowUpDialog({
           </div>
 
           <p className="mb-2 text-center text-xs text-forest-muted">
-            ඔබේ පිළිතුර තෝරන්න | Choose your answer
-          </p>
-          <div className="flex gap-3" role="group" aria-label="Follow-up answer">
+            {uiText("ඔබේ පිළිතුර තෝරන්න | Choose your answer")}</p>
+          <div className="flex gap-3" role="group" aria-label={uiText("Follow-up answer")}>
             <div className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-xs text-forest-muted">රෝගය නොමැත | Symptom absent</span>
+              <span className="text-xs text-forest-muted">{uiText("රෝගය නොමැත | Symptom absent")}</span>
               <Button
                 className="w-full"
                 variant="outline"
                 onClick={() => onAnswer('නෑ')}
                 loading={loading}
-                aria-label="No — this symptom is not present"
-                title="No — this symptom is not present"
+                aria-label={uiText("No — this symptom is not present")}
+                title={uiText("No — this symptom is not present")}
               >
-                නෑ | No
-              </Button>
+                {uiText("නෑ | No")}</Button>
             </div>
             <div className="flex-1 flex flex-col items-center gap-1">
-              <span className="text-xs text-forest-muted">රෝගය ඇත | Symptom present</span>
+              <span className="text-xs text-forest-muted">{uiText("රෝගය ඇත | Symptom present")}</span>
               <Button
                 className="w-full"
                 variant="primary"
                 onClick={() => onAnswer('ඔව්')}
                 loading={loading}
-                aria-label="Yes — this symptom is present"
-                title="Yes — this symptom is present"
+                aria-label={uiText("Yes — this symptom is present")}
+                title={uiText("Yes — this symptom is present")}
               >
-                ඔව් | Yes
-              </Button>
+                {uiText("ඔව් | Yes")}</Button>
             </div>
           </div>
 
           <button onClick={onSkip} className="mt-4 w-full text-center text-sm text-forest-muted underline">
-            මඟ හරින්න | Skip
-          </button>
+            {uiText("මඟ හරින්න | Skip")}</button>
         </motion.div>
       </div>
     </AnimatePresence>

@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { Mic, Square, UploadCloud, Sparkles, History as HistoryIcon, Trash2 } from 'lucide-react'
@@ -78,7 +79,7 @@ export default function VoiceDiagnosis() {
       const data = await diagnoseVoice(blob, filename)
       handleResult(data)
     } catch {
-      toast.error('රෝග විනිශ්චය අසාර්ථක විය | Diagnosis failed')
+      toast.error(uiText("රෝග විනිශ්චය අසාර්ථක විය | Diagnosis failed"))
       setStage('idle')
     }
   }
@@ -115,7 +116,7 @@ export default function VoiceDiagnosis() {
       const data = await submitFollowUp(answer, result.session_id)
       handleResult(data)
     } catch {
-      toast.error('පිළිතුර යැවීම අසාර්ථක විය | Failed to submit answer')
+      toast.error(uiText("පිළිතුර යැවීම අසාර්ථක විය | Failed to submit answer"))
     } finally {
       setFollowupLoading(false)
     }
@@ -133,8 +134,8 @@ export default function VoiceDiagnosis() {
       {/* Tab bar: switch between Voice Analyze and History */}
       <div className="mb-6 flex gap-2 rounded-xl bg-beige p-1">
         {([
-          { key: 'analyze' as PageTab, label: 'Voice Analyze', labelSi: 'විශ්ලේෂණය', icon: Mic },
-          { key: 'history' as PageTab, label: 'History', labelSi: 'ඉතිහාසය', icon: HistoryIcon },
+          { key: 'analyze' as PageTab, label: uiText("Voice Analyze"), labelSi: uiText("විශ්ලේෂණය"), icon: Mic },
+          { key: 'history' as PageTab, label: uiText("History"), labelSi: uiText("ඉතිහාසය"), icon: HistoryIcon },
         ]).map((t) => (
           <button
             key={t.key}
@@ -144,15 +145,14 @@ export default function VoiceDiagnosis() {
               ${pageTab === t.key ? 'bg-white text-forest shadow-sm' : 'text-forest-muted'}`}
           >
             <t.icon className="h-4 w-4" />
-            <span className="font-sinhala">{t.labelSi}</span>
-            <span className="text-xs text-forest-muted">| {t.label}</span>
+            <span className="font-sinhala">{uiText(t.label)}</span>
           </button>
         ))}
       </div>
 
       {pageTab === 'history' ? (
         myVoiceHistory.length === 0 ? (
-          <EmptyState icon={HistoryIcon} title="No voice diagnoses yet" />
+          <EmptyState icon={HistoryIcon} title={uiText("No voice diagnoses yet")} />
         ) : (
           <div className="space-y-3">
             {myVoiceHistory.map((v) => (
@@ -170,8 +170,8 @@ export default function VoiceDiagnosis() {
                   onClick={() => deleteVoiceEntry(v.id)}
                   className="ml-1 rounded-lg p-1.5 text-forest-muted
                     hover:bg-red-50 hover:text-red-soft transition-colors"
-                  title="Delete this entry | මෙම වාර්තාව මකන්න"
-                  aria-label="Delete voice diagnosis entry"
+                  title={uiText("Delete this entry | මෙම වාර්තාව මකන්න")}
+                  aria-label={uiText("Delete voice diagnosis entry")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -200,8 +200,7 @@ export default function VoiceDiagnosis() {
                   <span className="h-2 w-2 animate-pulse rounded-full bg-red-soft" />
                   <span>
                     {String(Math.floor(recorder.seconds / 60)).padStart(1, '0')}:
-                    {String(recorder.seconds % 60).padStart(2, '0')} · පටිගත වෙමින්
-                  </span>
+                    {String(recorder.seconds % 60).padStart(2, '0')} {uiText("· පටිගත වෙමින්")}</span>
                 </div>
 
                 <div className="flex h-12 items-end gap-1">
@@ -215,8 +214,7 @@ export default function VoiceDiagnosis() {
                 </div>
 
                 <Button variant="danger" size="lg" className="w-full" onClick={handleStop}>
-                  නතර කරන්න | Stop &amp; Analyse
-                </Button>
+                  {uiText("නතර කරන්න | Stop & Analyse")}</Button>
               </div>
             </Card>
           ) : (
@@ -225,8 +223,8 @@ export default function VoiceDiagnosis() {
                 <div className="flex items-start gap-3">
                   <Mic className="mt-0.5 h-5 w-5 shrink-0 text-amber" />
                   <div>
-                    <p className="font-sinhala font-medium text-forest">ගොයම් රෝගයේ ලක්ෂණ ගැන සිංහලෙන් කතා කරන්න</p>
-                    <p className="text-sm text-forest-muted">Describe your paddy disease symptoms in Sinhala</p>
+                    <p className="font-sinhala font-medium text-forest">{uiText("ගොයම් රෝගයේ ලක්ෂණ ගැන සිංහලෙන් කතා කරන්න")}</p>
+                    <p className="text-sm text-forest-muted">{uiText("Describe your paddy disease symptoms in Sinhala")}</p>
                   </div>
                 </div>
               </Card>
@@ -239,12 +237,12 @@ export default function VoiceDiagnosis() {
                 >
                   <Mic className="h-12 w-12 text-forest" />
                 </button>
-                <p className="text-sm text-forest-muted">ස්පර්ශ කරන්න | Tap to record</p>
+                <p className="text-sm text-forest-muted">{uiText("ස්පර්ශ කරන්න | Tap to record")}</p>
               </div>
 
               <div className="flex items-center gap-3 text-forest-muted">
                 <div className="h-px flex-1 bg-beige" />
-                <span className="text-xs">හෝ | or</span>
+                <span className="text-xs">{uiText("හෝ | or")}</span>
                 <div className="h-px flex-1 bg-beige" />
               </div>
 
@@ -254,7 +252,7 @@ export default function VoiceDiagnosis() {
                 className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-beige bg-beige/40 px-4 py-6 text-center hover:border-amber disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <UploadCloud className="h-6 w-6 text-amber" />
-                <span className="font-sinhala text-sm text-forest">ශ්‍රව්‍ය ගොනුවක් ඇතුළු කරන්න</span>
+                <span className="font-sinhala text-sm text-forest">{uiText("ශ්‍රව්‍ය ගොනුවක් ඇතුළු කරන්න")}</span>
                 <span className="text-xs text-forest-muted">.ogg .mp3 .wav .webm .m4a</span>
               </button>
               <input
@@ -266,12 +264,12 @@ export default function VoiceDiagnosis() {
               />
 
               <Card>
-                <p className="mb-3 text-xs font-semibold uppercase text-forest-muted">Example Symptoms</p>
+                <p className="mb-3 text-xs font-semibold uppercase text-forest-muted">{uiText("Example Symptoms")}</p>
                 <div className="space-y-2">
                   {EXAMPLES.map((ex) => (
                     <div key={ex} className="flex items-center gap-2">
                       <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-green-soft" />
-                      <span className="font-sinhala text-sm text-forest-light">{ex}</span>
+                      <span className="font-sinhala text-sm text-forest-light">{uiText(ex)}</span>
                     </div>
                   ))}
                 </div>
@@ -285,14 +283,14 @@ export default function VoiceDiagnosis() {
           {(stage === 'idle' || stage === 'recording') && (
             <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <Sparkles className="h-8 w-8 text-forest-muted" />
-              <p className="font-sinhala text-sm text-forest-muted">ප්‍රතිඵල මෙහි දිස්වේ</p>
-              <p className="text-xs text-forest-muted">Your diagnosis will appear here</p>
+              <p className="font-sinhala text-sm text-forest-muted">{uiText("ප්‍රතිඵල මෙහි දිස්වේ")}</p>
+              <p className="text-xs text-forest-muted">{uiText("Your diagnosis will appear here")}</p>
             </Card>
           )}
 
           {stage === 'analysing' && (
             <Card>
-              <LoadingSpinner label="විශ්ලේෂණය කරමින්..." labelEn="Analysing your voice recording" />
+              <LoadingSpinner label={uiText("විශ්ලේෂණය කරමින්...")} labelEn={uiText("Analysing your voice recording")} />
             </Card>
           )}
 
@@ -301,8 +299,8 @@ export default function VoiceDiagnosis() {
           {stage === 'followup' && (
             <Card className="flex flex-col items-center justify-center gap-3 py-16 text-center">
               <Sparkles className="h-8 w-8 animate-pulse text-amber" />
-              <p className="font-sinhala text-sm text-forest-muted">ඔබේ පිළිතුර එනතුරු බලා සිටී</p>
-              <p className="text-xs text-forest-muted">Waiting for your answer below</p>
+              <p className="font-sinhala text-sm text-forest-muted">{uiText("ඔබේ පිළිතුර එනතුරු බලා සිටී")}</p>
+              <p className="text-xs text-forest-muted">{uiText("Waiting for your answer below")}</p>
             </Card>
           )}
 

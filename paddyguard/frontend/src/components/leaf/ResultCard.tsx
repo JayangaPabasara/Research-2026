@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { AlertCircle, CloudSun, Leaf } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
@@ -13,8 +14,8 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
         <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-red-soft/10">
           <AlertCircle className="h-8 w-8 text-red-soft" />
         </div>
-        <h3 className="font-sinhala text-lg font-bold text-forest">ගොයම් කොළයක් නොවේ</h3>
-        <p className="mt-1 text-sm text-forest-muted">This image doesn't look like a rice leaf. Try a clearer close-up photo.</p>
+        <h3 className="font-sinhala text-lg font-bold text-forest">{uiText("ගොයම් කොළයක් නොවේ")}</h3>
+        <p className="mt-1 text-sm text-forest-muted">{uiText("This image doesn't look like a rice leaf. Try a clearer close-up photo.")}</p>
       </Card>
     )
   }
@@ -39,7 +40,7 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
             <Badge tone={prediction.confidence >= 0.75 ? 'green' : 'amber'}>{formatConfidence(prediction.confidence)}</Badge>
             {prediction.severity_percentage != null && (
               <Badge tone={severity.label === 'Severe' ? 'red' : severity.label === 'Moderate' ? 'amber' : 'green'}>
-                {severity.label} · {prediction.severity_percentage.toFixed(1)}%
+                {uiText(severity.label)} · {prediction.severity_percentage.toFixed(1)}%
               </Badge>
             )}
           </div>
@@ -47,17 +48,16 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
 
         {prediction.needs_expert_review && (
           <div className="mt-3 rounded-xl bg-amber-light px-4 py-2 text-xs text-amber-dark">
-            Low confidence — this case has been queued for expert review.
-          </div>
+            {uiText("Low confidence — this case has been queued for expert review.")}</div>
         )}
       </Card>
 
       {prediction.gradcam_base64 && (
         <Card>
-          <h4 className="mb-2 text-sm font-semibold text-forest-muted">Grad-CAM — Affected Region</h4>
+          <h4 className="mb-2 text-sm font-semibold text-forest-muted">{uiText("Grad-CAM — Affected Region")}</h4>
           <img
             src={`data:image/png;base64,${prediction.gradcam_base64}`}
-            alt="Grad-CAM heatmap"
+            alt={uiText("Grad-CAM heatmap")}
             className="w-full rounded-xl object-cover"
           />
         </Card>
@@ -65,17 +65,17 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
 
       {yieldLoss && Object.keys(yieldLoss).length > 0 && (
         <Card>
-          <h4 className="mb-2 text-sm font-semibold text-forest-muted">Estimated Yield Impact</h4>
+          <h4 className="mb-2 text-sm font-semibold text-forest-muted">{uiText("Estimated Yield Impact")}</h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {'predicted_loss_percentage' in yieldLoss && (
               <div>
-                <p className="text-forest-muted">Predicted Loss</p>
+                <p className="text-forest-muted">{uiText("Predicted Loss")}</p>
                 <p className="font-bold text-forest">{String(yieldLoss.predicted_loss_percentage)}%</p>
               </div>
             )}
             {'estimated_loss_kg' in yieldLoss && (
               <div>
-                <p className="text-forest-muted">Estimated Loss</p>
+                <p className="text-forest-muted">{uiText("Estimated Loss")}</p>
                 <p className="font-bold text-forest">{String(yieldLoss.estimated_loss_kg)} kg</p>
               </div>
             )}
@@ -87,7 +87,7 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
         <Card>
           <div className="mb-2 flex items-center gap-2">
             <CloudSun className="h-4 w-4 text-forest-muted" />
-            <h4 className="text-sm font-semibold text-forest-muted">Weather Context — {result.location?.city}</h4>
+            <h4 className="text-sm font-semibold text-forest-muted">{uiText("Weather Context —")}{result.location?.city}</h4>
           </div>
           <div className="flex flex-wrap gap-4 text-sm text-forest">
             {Object.entries(weather).slice(0, 6).map(([k, v]) => (
@@ -101,7 +101,7 @@ export default function ResultCard({ result }: { result: AnalyzeResult }) {
       )}
 
       <Card>
-        <h4 className="mb-3 text-sm font-semibold text-forest-muted">Top Predictions</h4>
+        <h4 className="mb-3 text-sm font-semibold text-forest-muted">{uiText("Top Predictions")}</h4>
         <div className="space-y-2">
           {Object.entries(prediction.class_probabilities)
             .sort((a, b) => b[1] - a[1])

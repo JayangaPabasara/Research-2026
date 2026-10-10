@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import {
   useCallback,
   useEffect,
@@ -314,7 +315,7 @@ export default function TreatmentChat() {
 
     if (!currentSession) {
       toast.error(
-        'Chat session is not ready. Please try again.'
+        uiText("Chat session is not ready. Please try again.")
       )
 
       return
@@ -688,7 +689,7 @@ export default function TreatmentChat() {
     setSending(false)
 
     toast.success(
-      'Conversation restored. You can continue chatting.'
+      uiText("Conversation restored. You can continue chatting.")
     )
   }
 
@@ -764,8 +765,7 @@ export default function TreatmentChat() {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-7.5rem)]">
         <div className="text-sm text-forest-muted">
-          Starting a new treatment chat...
-        </div>
+          {uiText("Starting a new treatment chat...")}</div>
       </div>
     )
   }
@@ -792,13 +792,10 @@ export default function TreatmentChat() {
         <div className="min-w-0">
 
           <h2 className="text-lg font-bold truncate font-sinhala text-forest">
-            ප්‍රතිකාර උපදේශක | Treatment Advisor
-          </h2>
+            {uiText("ප්‍රතිකාර උපදේශක | Treatment Advisor")}</h2>
 
           <p className="text-xs truncate text-forest-muted">
-            Ask about rice leaf diseases and pests
-            — in English or Sinhala
-          </p>
+            {uiText("Ask about rice leaf diseases and pests — in English or Sinhala")}</p>
 
         </div>
 
@@ -851,8 +848,7 @@ export default function TreatmentChat() {
               >
                 <RotateCcw className="h-3.5 w-3.5" />
 
-                New chat
-              </Button>
+                {uiText("New chat")}</Button>
             )}
 
           </div>
@@ -879,8 +875,7 @@ export default function TreatmentChat() {
         >
           <MessageCircle className="w-4 h-4" />
 
-          Chat
-        </button>
+          {uiText("Chat")}</button>
 
         <button
           type="button"
@@ -895,9 +890,7 @@ export default function TreatmentChat() {
         >
           <Clock className="w-4 h-4" />
 
-          History
-
-          {archivedChats.length >
+          {uiText("History")}{archivedChats.length >
             0 && (
             <span className="ml-1 text-xs">
               (
@@ -934,17 +927,10 @@ export default function TreatmentChat() {
                 <div>
 
                   <p className="text-lg font-bold font-sinhala text-forest">
-                    ආයුබෝවන්!
-                  </p>
+                    {uiText("ආයුබෝවන්!")}</p>
 
                   <p className="max-w-sm mx-auto text-sm text-forest-muted">
-                    Ask me about rice diseases,
-                    pests, symptoms, prevention,
-                    or chemical treatments — by
-                    typing or tapping the mic.
-                    Try one of these to get a
-                    full report:
-                  </p>
+                    {uiText("Ask me about rice diseases, pests, symptoms, prevention, or chemical treatments — by typing or tapping the mic. Try one of these to get a full report:")}</p>
 
                 </div>
 
@@ -1078,8 +1064,8 @@ export default function TreatmentChat() {
 
             <EmptyState
               icon={Clock}
-              title="No past conversations yet"
-              description="Your previous treatment conversations will appear here."
+              title={uiText("No past conversations yet")}
+              description={uiText("Your previous treatment conversations will appear here.")}
             />
 
           ) : (
@@ -1132,8 +1118,7 @@ export default function TreatmentChat() {
                           .messages
                           .length
                       }{' '}
-                      msgs
-                    </Badge>
+                      {uiText("msgs")}</Badge>
 
                     {/* Continue */}
 
@@ -1148,8 +1133,7 @@ export default function TreatmentChat() {
                     >
                       <Play className="h-3.5 w-3.5" />
 
-                      Continue
-                    </Button>
+                      {uiText("Continue")}</Button>
 
                   </div>
 
@@ -1170,9 +1154,9 @@ export default function TreatmentChat() {
         isOpen={
           confirmReset
         }
-        title="Start a new chat?"
-        message="Your current conversation will be saved in History and a fresh treatment conversation will be started."
-        confirmLabel="Start new chat"
+        title={uiText("Start a new chat?")}
+        message={uiText("Your current conversation will be saved in History and a fresh treatment conversation will be started.")}
+        confirmLabel={uiText("Start new chat")}
         danger
         loading={
           resetting
@@ -1200,7 +1184,7 @@ export default function TreatmentChat() {
             null
           )
         }
-        title="Treatment Advisor Conversation"
+        title={uiText("Treatment Advisor Conversation")}
         size="lg"
       >
 
@@ -1236,8 +1220,7 @@ export default function TreatmentChat() {
             >
               <Play className="w-4 h-4" />
 
-              Continue this conversation
-            </Button>
+              {uiText("Continue this conversation")}</Button>
 
           </div>
         )}

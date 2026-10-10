@@ -59,7 +59,7 @@ export async function detectPest(
   form.append('file', image, image.name)
 
   const { data } = await api.post<PestDetectionResult>(
-    `${PEST_API_URL}/detect`,
+    '/api/v1/pest/detect',
     form,
     {
       timeout: 240000,

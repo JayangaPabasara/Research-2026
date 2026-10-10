@@ -1,5 +1,9 @@
+import { uiText } from '@/i18n/text'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Avatar } from '@/components/community/Common'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   Home,
   Mic,
@@ -14,6 +18,9 @@ import {
   LogOut,
   Wheat,
   ShieldCheck,
+  ChevronLeft,
+  UserRound,
+  X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -35,6 +42,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { to: '/profile', label: 'profile', icon: UserRound, allow: ['FARMER'] },
+  { to: '/feedback', label: 'feedback', icon: MessageCircle, allow: ['FARMER'] },
   { to: '/', label: 'මුල් පිටුව | Home', icon: Home, allow: ['FARMER'] },
   { to: '/voice', label: 'හඬ විනිශ්චය | Voice', icon: Mic, allow: ['FARMER'] },
   { to: '/leaf', label: 'කොළ රෝග | Leaf', icon: Leaf, allow: ['FARMER', 'EXPERT', 'SUPER_ADMIN'] },
@@ -61,6 +70,29 @@ export default function Sidebar({
   open,
   onClose,
 }: SidebarProps) {
+  const { t } = useTranslation()
+  const reducedMotion = useReducedMotion()
+  const mobilePanel = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const previous = document.activeElement as HTMLElement | null
+    const panel = mobilePanel.current
+    panel?.querySelector<HTMLElement>('button, a')?.focus()
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+      if (event.key !== 'Tab' || !panel) return
+      const elements = Array.from(panel.querySelectorAll<HTMLElement>('a, button, input, select, [tabindex="0"]')).filter(el => !el.hasAttribute('disabled') && el.getClientRects().length)
+      const first = elements[0], last = elements.at(-1)
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus() }
+  }, [open, onClose])
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('paddyguard_sidebar_collapsed') === 'true')
+  const primaryRole = useAuthStore(s => s.user?.role)
+  const verified = useAuthStore(s => s.identityVerified)
+  const routeKeys: Record<string, string> = { '/': 'home', '/voice': 'voice', '/leaf': 'leaf', '/pest': 'pest', '/chat': 'treatment', '/history': 'history', '/profile': 'profile', '/feedback': 'feedback' }
   const navigate = useNavigate()
 
   const farmerAuthed = useAuthStore(
@@ -95,7 +127,7 @@ export default function Sidebar({
 
   const roles: AppRole[] = []
 
-  if (farmerAuthed) {
+  if (farmerAuthed && primaryRole === 'FARMER') {
     roles.push('FARMER')
   }
 
@@ -126,7 +158,7 @@ export default function Sidebar({
     pestAdminAuthed
       ? 'PEST ADMIN'
       : leafAuth?.role ||
-        (farmerAuthed ? 'FARMER' : '')
+        (farmerAuthed ? primaryRole : '')
 
   function handleLogout() {
     /*
@@ -150,7 +182,8 @@ export default function Sidebar({
   }
 
   const content = (
-    <div className="flex h-full w-[260px] flex-col bg-forest text-white">
+    <div className={`pg-sidebar relative flex h-full flex-col bg-forest text-white ${collapsed ? 'pg-sidebar-collapsed' : ''}`}>
+      <button aria-label={t(collapsed ? 'expand' : 'collapse')} aria-expanded={!collapsed} onClick={() => { setCollapsed(!collapsed); localStorage.setItem('paddyguard_sidebar_collapsed', String(!collapsed)) }} className="absolute -right-3 top-6 z-10 hidden rounded-full border border-white/20 bg-forest p-1.5 text-white lg:block"><ChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} /></button>
 
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6">
@@ -158,9 +191,10 @@ export default function Sidebar({
           <Wheat className="h-5 w-5 text-amber" />
         </div>
 
-        <span className="text-lg font-bold">
+        <span className="pg-sidebar-label text-lg font-bold">
           PaddyGuard AI
         </span>
+        <button onClick={onClose} aria-label={t('close')} className="ml-auto rounded-lg p-2 lg:hidden"><X className="h-5 w-5" /></button>
       </div>
 
       {/* Navigation */}
@@ -171,6 +205,8 @@ export default function Sidebar({
             key={item.to}
             to={item.to}
             end={item.to === '/'}
+            title={t(routeKeys[item.to] || item.label)}
+            aria-label={t(routeKeys[item.to] || item.label)}
             onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-xl border-l-[3px] px-3 py-2.5 text-sm font-medium transition-colors font-sinhala ${
@@ -181,11 +217,12 @@ export default function Sidebar({
             }
           >
             <item.icon className="h-5 w-5 shrink-0" />
-            <span className="truncate">
-              {item.label}
+            <span className="pg-sidebar-label">
+              {t(routeKeys[item.to] || item.label)}
             </span>
           </NavLink>
         ))}
+        {verified && primaryRole === 'SYSTEM_ADMIN' && <NavLink to="/system-admin" title={t('systemAdmin')} aria-label={t('systemAdmin')} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-3 ${isActive ? 'bg-amber/10 text-amber' : 'text-white/80'}`}><ShieldCheck className="h-5 w-5 shrink-0" /><span className="pg-sidebar-label">{t('systemAdmin')}</span></NavLink>}
 
         {/* ========================= */}
         {/* Pest Admin Navigation      */}
@@ -195,8 +232,7 @@ export default function Sidebar({
           <div className="mt-4 border-t border-white/10 pt-4">
 
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-white/40">
-              Pest Administration
-            </p>
+              {uiText("Pest Administration")}</p>
 
             <NavLink
               to="/pest-admin"
@@ -211,9 +247,8 @@ export default function Sidebar({
             >
               <ShieldCheck className="h-5 w-5 shrink-0" />
 
-              <span className="truncate">
-                Pest Model Admin
-              </span>
+              <span className="pg-sidebar-label truncate">
+                {uiText("Pest Model Admin")}</span>
             </NavLink>
           </div>
         )}
@@ -224,13 +259,15 @@ export default function Sidebar({
 
         <div className="mb-3 flex items-center gap-3">
 
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber text-sm font-bold text-white">
+          <NavLink to={primaryRole === 'SYSTEM_ADMIN' ? '/system-admin' : '/profile'} aria-label={t("profile")} title={t("profile")}>
+          {farmerAuthed && !pestAdminAuthed ? <Avatar className="h-9 w-9" /> : <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber text-sm font-bold text-white">
             {displayName
               .charAt(0)
               .toUpperCase()}
-          </div>
+          </div>}
+          </NavLink>
 
-          <div className="min-w-0">
+          <div className="pg-sidebar-label min-w-0">
             <p className="truncate text-sm font-semibold">
               {displayName}
             </p>
@@ -243,10 +280,12 @@ export default function Sidebar({
 
         <button
           onClick={handleLogout}
+          title={t('logout')}
+          aria-label={t('logout')}
           className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5"
         >
           <LogOut className="h-4 w-4" />
-          Logout
+          <span className="pg-sidebar-label">{t('logout')}</span>
         </button>
       </div>
     </div>
@@ -271,12 +310,16 @@ export default function Sidebar({
             />
 
             <motion.div
+              ref={mobilePanel}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('menu')}
               className="absolute inset-y-0 left-0"
               initial={{ x: -260 }}
               animate={{ x: 0 }}
               exit={{ x: -260 }}
               transition={{
-                duration: 0.25,
+                duration: reducedMotion ? 0 : 0.25,
                 ease: 'easeOut',
               }}
             >

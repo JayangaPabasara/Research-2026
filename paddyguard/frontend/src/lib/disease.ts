@@ -1,3 +1,4 @@
+import i18n from '@/i18n'
 export interface DiseaseInfo {
   en: string
   si: string
@@ -27,7 +28,8 @@ export function diseaseColor(name: string | null | undefined): string {
 }
 
 export function diseaseSinhalaName(name: string | null | undefined): string {
-  return getDiseaseInfo(name).si
+  const info = getDiseaseInfo(name)
+  return i18n.language === 'en' ? info.en : info.si
 }
 
 export function severityLabel(percentage: number | null | undefined): { label: string; color: string } {
@@ -44,7 +46,7 @@ export function formatConfidence(value: number): string {
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '-'
   try {
-    return new Date(iso).toLocaleString('en-LK', {
+    return new Date(iso).toLocaleString(i18n.language === 'en' ? 'en-LK' : 'si-LK', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

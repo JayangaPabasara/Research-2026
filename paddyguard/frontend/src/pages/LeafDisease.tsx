@@ -1,7 +1,9 @@
+import { useLeafLanguage, LanguageSwitcher } from '@/i18n/useLeafLanguage'
+import { uiText } from '@/i18n/text'
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ImagePlus, X, MapPin, Globe, AlertTriangle, MessageCircle } from 'lucide-react'
+import { ImagePlus, X, MapPin, AlertTriangle, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // Scoped UI Primitives
@@ -48,7 +50,7 @@ type PersistedLeafAnalysisState = {
 
 export default function LeafDisease() {
   const [tab, setTab] = useState<Tab>('analyze')
-  const [lang, setLang] = useState<'en' | 'si'>('en')
+  const lang = useLeafLanguage()
 
   // Form fields
   const [file, setFile] = useState<File | null>(null)
@@ -106,9 +108,7 @@ export default function LeafDisease() {
 
       const savedState = JSON.parse(rawState) as Partial<PersistedLeafAnalysisState>
 
-      if (savedState.lang === 'si' || savedState.lang === 'en') {
-        setLang(savedState.lang)
-      }
+
 
       setTab(savedState.tab === 'history' ? 'history' : 'analyze')
       setShowLocation(Boolean(savedState.showLocation))
@@ -168,13 +168,6 @@ export default function LeafDisease() {
     }
   }, [tab, lang, showLocation, city, latitude, longitude, fieldArea, affectedField, expectedYield, treatmentApplied, preview, result, error, duplicateError, file])
 
-  // Initialize language selection
-  useEffect(() => {
-    const storedLang = localStorage.getItem('paddyguard_leaf_lang') as 'en' | 'si'
-    if (storedLang) {
-      setLang(storedLang)
-    }
-  }, [])
 
   // Load history when switching tab
   useEffect(() => {
@@ -183,12 +176,6 @@ export default function LeafDisease() {
 
   const t = leafTranslations[lang]
 
-  const toggleLanguage = () => {
-    const newLang = lang === 'en' ? 'si' : 'en'
-    setLang(newLang)
-    localStorage.setItem('paddyguard_leaf_lang', newLang)
-    toast.success(newLang === 'en' ? 'Language switched to English' : 'භාෂාව සිංහලට වෙනස් කරන ලදී')
-  }
 
   async function loadHistory() {
     setLoadingHistory(true)
@@ -200,7 +187,7 @@ export default function LeafDisease() {
       if ((err as { response?: { status?: number } }).response?.status === 401) {
         setSessionExpired(true)
       } else {
-        toast.error('Failed to load history')
+        toast.error(uiText("Failed to load history"))
       }
     } finally {
       setLoadingHistory(false)
@@ -235,16 +222,16 @@ export default function LeafDisease() {
 
   function useMyLocation() {
     if (!navigator.geolocation) {
-      toast.error('Geolocation not supported')
+      toast.error(uiText("Geolocation not supported"))
       return
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLatitude(String(pos.coords.latitude))
         setLongitude(String(pos.coords.longitude))
-        toast.success('Location captured')
+        toast.success(uiText("Location captured"))
       },
-      () => toast.error('Could not get location')
+      () => toast.error(uiText("Could not get location"))
     )
   }
 
@@ -290,9 +277,9 @@ export default function LeafDisease() {
     try {
       await deleteCase(caseId)
       setCases((prev) => prev.filter((c) => c.case_id !== caseId))
-      toast.success('Case deleted successfully')
+      toast.success(uiText("Case deleted successfully"))
     } catch {
-      toast.error('Failed to delete case')
+      toast.error(uiText("Failed to delete case"))
     }
   }
 
@@ -313,9 +300,9 @@ export default function LeafDisease() {
   // Calculation Tooltips
   const getDiseaseTooltip = () => (
     <>
-      <p>The EfficientNetB3 model compares the image against four trained classes.</p>
-      <p>The displayed disease is the class with the highest softmax probability.</p>
-      <p>Classes are Bacterial Blight, Brown Spot, Healthy, and Leaf Blast.</p>
+      <p>{uiText("The EfficientNetB3 model compares the image against four trained classes.")}</p>
+      <p>{uiText("The displayed disease is the class with the highest softmax probability.")}</p>
+      <p>{uiText("Classes are Bacterial Blight, Brown Spot, Healthy, and Leaf Blast.")}</p>
     </>
   )
 
@@ -323,11 +310,11 @@ export default function LeafDisease() {
     if (!br?.disease) return null
     return (
       <>
-        <p>Confidence is calculated using softmax from the model logits.</p>
-        <p>Formula:<br />confidence = exp(selected logit) / sum(exp(all logits)) × 100</p>
-        <p className="mt-2"><em>Model confidence is not the same as guaranteed diagnostic accuracy.</em></p>
+        <p>{uiText("Confidence is calculated using softmax from the model logits.")}</p>
+        <p>{uiText("Formula:")}<br />{uiText("confidence = exp(selected logit) / sum(exp(all logits)) × 100")}</p>
+        <p className="mt-2"><em>{uiText("Model confidence is not the same as guaranteed diagnostic accuracy.")}</em></p>
         <div className="mt-2">
-          <strong>Class Probabilities:</strong>
+          <strong>{uiText("Class Probabilities:")}</strong>
           <ul className="text-sm list-disc pl-4 mt-1">
             {Object.entries(br.disease.class_probabilities || {}).map(([c, p]: [string, any]) => (
               <li key={c}>{c.replace(/_/g, ' ')}: {(p * 100).toFixed(2)}%</li>
@@ -342,23 +329,23 @@ export default function LeafDisease() {
     if (!br?.severity) return null
     return (
       <>
-        <p>Severity estimates how much of the visible leaf area appears affected by disease symptoms.</p>
-        <p>Current severity is a Grad-CAM attention-area proxy.</p>
-        <p>Heatmap values are normalized from 0 to 1.</p>
-        <p>Pixels ≥ {br.severity.activation_threshold} are counted as active.</p>
-        <p>Formula:<br />severity = active Grad-CAM pixels / total pixels × 100</p>
+        <p>{uiText("Severity estimates how much of the visible leaf area appears affected by disease symptoms.")}</p>
+        <p>{uiText("Current severity is a Grad-CAM attention-area proxy.")}</p>
+        <p>{uiText("Heatmap values are normalized from 0 to 1.")}</p>
+        <p>{uiText("Pixels ≥")}{br.severity.activation_threshold} {uiText("are counted as active.")}</p>
+        <p>{uiText("Formula:")}<br />{uiText("severity = active Grad-CAM pixels / total pixels × 100")}</p>
         <p className="mt-2 text-xs">
-          Active pixels: {br.severity.active_pixel_count}<br />
-          Total pixels: {br.severity.total_pixel_count}
+          {uiText("Active pixels:")}{br.severity.active_pixel_count}<br />
+          {uiText("Total pixels:")}{br.severity.total_pixel_count}
         </p>
         <ul className="text-xs list-disc pl-4 mt-2 mb-2">
-          <li>0–5% Negligible</li>
-          <li>5–15% Mild</li>
-          <li>15–30% Moderate</li>
-          <li>30–50% Severe</li>
-          <li>above 50% Critical</li>
+          <li>{uiText("0–5% Negligible")}</li>
+          <li>{uiText("5–15% Mild")}</li>
+          <li>{uiText("15–30% Moderate")}</li>
+          <li>{uiText("30–50% Severe")}</li>
+          <li>{uiText("above 50% Critical")}</li>
         </ul>
-        <p className="text-xs text-yellow-600"><em>This is an indicative attention proxy, not an exact lesion segmentation result.</em></p>
+        <p className="text-xs text-yellow-600"><em>{uiText("This is an indicative attention proxy, not an exact lesion segmentation result.")}</em></p>
       </>
     )
   }
@@ -367,20 +354,20 @@ export default function LeafDisease() {
     if (!br?.climate) return null
     return (
       <>
-        <p>Climate Risk represents how favorable current or supplied environmental conditions are for disease development.</p>
-        <p>climate risk = 100 × (<br />
-          {br.climate.weights.humidity} × humidity risk +<br />
-          {br.climate.weights.rainfall} × rainfall risk +<br />
-          {br.climate.weights.temperature} × temperature risk +<br />
-          {br.climate.weights.forecast_rain} × forecast-rain risk<br />
+        <p>{uiText("Climate Risk represents how favorable current or supplied environmental conditions are for disease development.")}</p>
+        <p>{uiText("climate risk = 100 × (")}<br />
+          {br.climate.weights.humidity} {uiText("× humidity risk +")}<br />
+          {br.climate.weights.rainfall} {uiText("× rainfall risk +")}<br />
+          {br.climate.weights.temperature} {uiText("× temperature risk +")}<br />
+          {br.climate.weights.forecast_rain} {uiText("× forecast-rain risk")}<br />
         )</p>
         <div className="mt-2 text-xs">
-          <strong>Inputs:</strong>
+          <strong>{uiText("Inputs:")}</strong>
           <ul className="list-disc pl-4 mt-1">
-            <li>7d Temp: {br.climate.history_mean_temperature_c}°C</li>
-            <li>7d Hum: {br.climate.history_mean_humidity_pct}%</li>
-            <li>7d Rain: {br.climate.history_total_rainfall_mm}mm</li>
-            <li>Forecast Rain: {br.climate.forecast_total_rainfall_mm}mm</li>
+            <li>{uiText("7d Temp:")}{br.climate.history_mean_temperature_c}°C</li>
+            <li>{uiText("7d Hum:")}{br.climate.history_mean_humidity_pct}%</li>
+            <li>{uiText("7d Rain:")}{br.climate.history_total_rainfall_mm}mm</li>
+            <li>{uiText("Forecast Rain:")}{br.climate.forecast_total_rainfall_mm}mm</li>
           </ul>
         </div>
       </>
@@ -391,9 +378,9 @@ export default function LeafDisease() {
     if (!br?.loss) return null
     return (
       <>
-        <p>Loss Risk estimates the potential crop impact based on disease severity and other configured risk factors.</p>
-        <p>raw loss = disease base risk + 0.32 × severity percentage + 0.18 × affected-field percentage + 0.12 × climate-risk percentage</p>
-        <p className="mt-2">loss risk = raw loss × growth-stage factor {br.loss.treatment_applied ? '× 0.82 (treatment)' : ''}</p>
+        <p>{uiText("Loss Risk estimates the potential crop impact based on disease severity and other configured risk factors.")}</p>
+        <p>{uiText("raw loss = disease base risk + 0.32 × severity percentage + 0.18 × affected-field percentage + 0.12 × climate-risk percentage")}</p>
+        <p className="mt-2">{uiText("loss risk = raw loss × growth-stage factor")}{br.loss.treatment_applied ? uiText("× 0.82 (treatment)") : ''}</p>
       </>
     )
   }
@@ -401,10 +388,10 @@ export default function LeafDisease() {
   const getRiskLevelTooltip = () => (
     <>
       <ul className="list-disc pl-4">
-        <li>below 5% = Low</li>
-        <li>5% to below 15% = Moderate</li>
-        <li>15% to below 30% = High</li>
-        <li>30% or above = Critical</li>
+        <li>{uiText("below 5% = Low")}</li>
+        <li>{uiText("5% to below 15% = Moderate")}</li>
+        <li>{uiText("15% to below 30% = High")}</li>
+        <li>{uiText("30% or above = Critical")}</li>
       </ul>
     </>
   )
@@ -413,15 +400,15 @@ export default function LeafDisease() {
     if (!br?.estimated_loss) return null
     return (
       <>
-        <p>Estimated Loss converts the predicted loss risk into an approximate crop quantity.</p>
-        <p>expected healthy yield = field area in acres × expected yield in kg per acre</p>
-        <p className="mt-2">estimated production loss = expected healthy yield × loss-risk percentage / 100</p>
+        <p>{uiText("Estimated Loss converts the predicted loss risk into an approximate crop quantity.")}</p>
+        <p>{uiText("expected healthy yield = field area in acres × expected yield in kg per acre")}</p>
+        <p className="mt-2">{uiText("estimated production loss = expected healthy yield × loss-risk percentage / 100")}</p>
       </>
     )
   }
 
   const getCaseIdTooltip = () => (
-    <p>The Case ID identifies the saved prediction and can later connect farmer feedback, expert validation, and actual harvest outcomes.</p>
+    <p>{uiText("The Case ID identifies the saved prediction and can later connect farmer feedback, expert validation, and actual harvest outcomes.")}</p>
   )
 
   const openCalculationGuide = () => {
@@ -443,19 +430,12 @@ export default function LeafDisease() {
                 tab === tTab ? 'bg-white text-forest shadow-sm' : 'text-forest-muted'
               }`}
             >
-              {tTab === 'analyze' ? (lang === 'si' ? 'විශ්ලේෂණය' : 'Analyze') : (lang === 'si' ? 'ඉතිහාසය' : 'My History')}
+              {tTab === 'analyze' ? (lang === 'si' ? uiText("විශ්ලේෂණය") : uiText("Analyze")) : (lang === 'si' ? uiText("ඉතිහාසය") : uiText("My History"))}
             </button>
           ))}
         </div>
 
-        <button
-          onClick={toggleLanguage}
-          className="flex items-center gap-1.5 rounded-xl border border-forest/20 bg-white px-4 py-2 text-sm font-semibold text-forest shadow-sm hover:bg-beige/20 transition-all width-auto"
-          style={{ width: 'auto' }}
-        >
-          <Globe className="h-4 w-4" />
-          {lang === 'en' ? 'සිංහල' : 'English'}
-        </button>
+        <LanguageSwitcher />
       </div>
 
       {tab === 'analyze' && (
@@ -473,7 +453,7 @@ export default function LeafDisease() {
                 <li>{t.bullet4}</li>
               </ul>
               <div className="analysis-hero__mini">
-                <strong>{lang === 'si' ? 'PaddyGuard AI සපයයි:' : 'PaddyGuard AI can provide:'}</strong> {t.aiCapabilities}
+                <strong>{lang === 'si' ? uiText("PaddyGuard AI සපයයි:") : uiText("PaddyGuard AI can provide:")}</strong> {t.aiCapabilities}
               </div>
             </div>
 
@@ -488,12 +468,12 @@ export default function LeafDisease() {
                   >
                     <ImagePlus className="h-8 w-8 text-amber" />
                     <span className="text-sm text-forest-muted">
-                      {lang === 'si' ? 'පින්තූරය තෝරන්න' : 'Click to select a leaf image'}
+                      {lang === 'si' ? uiText("පින්තූරය තෝරන්න") : uiText("Click to select a leaf image")}
                     </span>
                   </button>
                 ) : (
                   <div className="relative">
-                    <img src={preview} alt="Leaf preview" className="preview-image" />
+                    <img src={preview} alt={uiText("Leaf preview")} className="preview-image" />
                     <button
                       type="button"
                       onClick={clearFile}
@@ -527,8 +507,8 @@ export default function LeafDisease() {
                 <div className="space-y-4 animate-entrance border-t border-beige/40 pt-3">
                   <Input label={t.city} value={city} onChange={(e) => setCity(e.target.value)} required />
                   <div className="grid grid-cols-2 gap-3">
-                    <Input label="Latitude" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
-                    <Input label="Longitude" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
+                    <Input label={uiText("Latitude")} value={latitude} onChange={(e) => setLatitude(e.target.value)} />
+                    <Input label={uiText("Longitude")} value={longitude} onChange={(e) => setLongitude(e.target.value)} />
                   </div>
                   <Button variant="ghost" size="sm" onClick={useMyLocation} className="w-full justify-start text-xs">
                     <MapPin className="h-4 w-4 mr-1" /> {t.useMyLocation}
@@ -606,7 +586,7 @@ export default function LeafDisease() {
                 <h3 className="font-bold">{t.expertReviewRequired}</h3>
                 <p>{t.expertReviewMsg}</p>
                 <p>{t.confidence}: {(result.prediction.confidence * 100).toFixed(2)}%</p>
-                {result.case_id && <p className="text-xs font-mono mt-1">Case ID: {result.case_id}</p>}
+                {result.case_id && <p className="text-xs font-mono mt-1">{uiText("Case ID:")}{result.case_id}</p>}
               </div>
             )}
 
@@ -665,7 +645,7 @@ export default function LeafDisease() {
                         <button type="button" className="guide-button" onClick={openCalculationGuide}>
                           {t.calculationGuideBtn}
                         </button>
-                        <span className="guide-languages">Available in English | සිංහල | தமிழ்</span>
+                        <span className="guide-languages">{uiText("Available in English | සිංහල | தமிழ்")}</span>
                       </div>
 
                       <p className="method-note">{t.methodNote}</p>
@@ -673,7 +653,7 @@ export default function LeafDisease() {
                       {result.prediction.gradcam_base64 && (
                         <div className="gradcam animate-entrance">
                           <h3>{t.gradCamTitle}</h3>
-                          <img src={`data:image/png;base64,${result.prediction.gradcam_base64}`} alt="Grad-CAM visualization" />
+                          <img src={`data:image/png;base64,${result.prediction.gradcam_base64}`} alt={uiText("Grad-CAM visualization")} />
                           <small className="disclaimer">{t.gradCamDisclaimer}</small>
                         </div>
                       )}
@@ -690,8 +670,7 @@ export default function LeafDisease() {
                         }
                       >
                         <MessageCircle className="h-4 w-4" />
-                        ප්‍රතිකාර | Treatment
-                      </Button>
+                        {uiText("ප්‍රතිකාර | Treatment")}</Button>
 
                       <WeatherContext
                         caseId={result.case_id}
@@ -702,7 +681,7 @@ export default function LeafDisease() {
                       />
 
                       <div className="warning disclaimer">
-                        <strong>Important:</strong> {yieldLoss?.warning || t.importantDisclaimer}
+                        <strong>{uiText("Important:")}</strong> {yieldLoss?.warning || t.importantDisclaimer}
                       </div>
                     </>
                   )
@@ -719,14 +698,12 @@ export default function LeafDisease() {
             <div className="card flex flex-col items-center gap-3 py-8 text-center">
               <AlertTriangle className="h-8 w-8 text-amber-dark" />
               <div>
-                <p className="font-bold text-forest">Your session has expired</p>
+                <p className="font-bold text-forest">{uiText("Your session has expired")}</p>
                 <p className="mt-1 text-sm text-forest-muted">
-                  Please log out and log back in to continue viewing your history.
-                </p>
+                  {uiText("Please log out and log back in to continue viewing your history.")}</p>
               </div>
               <Button variant="primary" onClick={handleReLogin}>
-                Log out &amp; sign in again
-              </Button>
+                {uiText("Log out & sign in again")}</Button>
             </div>
           ) : (
             <>

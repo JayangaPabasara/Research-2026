@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useMemo, useState } from 'react'
 import { getCases, getUserHistory } from '@/lib/leafApi'
 import type { CaseSummary } from '@/lib/leafApi'
@@ -103,7 +104,7 @@ function RingChart({ segments }: { segments: Segment[] }) {
 
   return (
     <div className="ring-chart-wrap">
-      <svg viewBox="0 0 180 180" className="ring-chart" aria-label="Disease breakdown chart">
+      <svg viewBox="0 0 180 180" className="ring-chart" aria-label={uiText("Disease breakdown chart")}>
         <circle cx="90" cy="90" r={radius} fill="none" stroke="#e9f0ed" strokeWidth="18" />
         {segments.map((segment) => {
           const dashLength = (segment.value / total) * circumference
@@ -113,7 +114,7 @@ function RingChart({ segments }: { segments: Segment[] }) {
 
           return (
             <circle
-              key={segment.label}
+              key={uiText(segment.label)}
               cx="90"
               cy="90"
               r={radius}
@@ -128,7 +129,7 @@ function RingChart({ segments }: { segments: Segment[] }) {
           )
         })}
         <text x="90" y="84" textAnchor="middle" className="ring-chart__value" style={{ fontSize: '1.2rem', fontWeight: 800, fill: '#123c2b' }}>{total}</text>
-        <text x="90" y="104" textAnchor="middle" className="ring-chart__label" style={{ fontSize: '0.62rem', fill: '#607368', textTransform: 'uppercase', letterSpacing: '0.08em' }}>analyses</text>
+        <text x="90" y="104" textAnchor="middle" className="ring-chart__label" style={{ fontSize: '0.62rem', fill: '#607368', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{uiText("analyses")}</text>
       </svg>
     </div>
   )
@@ -226,8 +227,8 @@ export default function UserAnalyticsOverview() {
   if (loading) {
     return (
       <section className="card analytics-panel">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>My Analysis Dashboard</h2>
-        <p className="muted">Loading your analysis summary...</p>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{uiText("My Analysis Dashboard")}</h2>
+        <p className="muted">{uiText("Loading your analysis summary...")}</p>
       </section>
     )
   }
@@ -235,11 +236,11 @@ export default function UserAnalyticsOverview() {
   if (!cases.length) {
     return (
       <section className="card analytics-panel">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>My Analysis Dashboard</h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{uiText("My Analysis Dashboard")}</h2>
         <div className="empty-dashboard-state">
           <div className="empty-dashboard-state__icon">📊</div>
-          <h3 style={{ margin: 0, fontWeight: 'bold' }}>No analysis data available yet</h3>
-          <p className="muted">Upload your first rice leaf image to start seeing crop health trends and detection insights.</p>
+          <h3 style={{ margin: 0, fontWeight: 'bold' }}>{uiText("No analysis data available yet")}</h3>
+          <p className="muted">{uiText("Upload your first rice leaf image to start seeing crop health trends and detection insights.")}</p>
         </div>
       </section>
     )
@@ -252,27 +253,27 @@ export default function UserAnalyticsOverview() {
     <section className="card analytics-panel animate-entrance">
       <div className="analytics-panel__header">
         <div>
-          <p className="eyebrow" style={{ margin: 0 }}>Overview</p>
-          <h2 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 'bold' }}>My Analysis Dashboard</h2>
+          <p className="eyebrow" style={{ margin: 0 }}>{uiText("Overview")}</p>
+          <h2 style={{ margin: '4px 0 0 0', fontSize: '1.25rem', fontWeight: 'bold' }}>{uiText("My Analysis Dashboard")}</h2>
         </div>
-        <span className="analytics-panel__badge">{stats.total} analyses</span>
+        <span className="analytics-panel__badge">{stats.total} {uiText("analyses")}</span>
       </div>
 
       <div className="analytics-grid">
         <div className="summary-card summary-card--primary">
-          <span>Total leaves analysed</span>
+          <span>{uiText("Total leaves analysed")}</span>
           <strong>{stats.total}</strong>
         </div>
         <div className="summary-card summary-card--success">
-          <span>Healthy leaves</span>
+          <span>{uiText("Healthy leaves")}</span>
           <strong>{stats.healthy}</strong>
         </div>
         <div className="summary-card summary-card--warning">
-          <span>Diseased leaves</span>
+          <span>{uiText("Diseased leaves")}</span>
           <strong>{stats.diseased}</strong>
         </div>
         <div className="summary-card summary-card--info">
-          <span>AI Confidence</span>
+          <span>{uiText("AI Confidence")}</span>
           <strong>{stats.confidenceLevel}</strong>
         </div>
       </div>
@@ -280,16 +281,16 @@ export default function UserAnalyticsOverview() {
       <div className="analytics-row">
         <div className="chart-card chart-card--wide">
           <div className="chart-card__header">
-            <h3 style={{ fontWeight: 'bold' }}>Most common disease</h3>
+            <h3 style={{ fontWeight: 'bold' }}>{uiText("Most common disease")}</h3>
             <span>{stats.mostCommonDisease}</span>
           </div>
           <div className="ring-layout">
             <RingChart segments={diseaseSegments} />
             <div className="legend-list">
               {diseaseSegments.map((segment) => (
-                <div key={segment.label} className="legend-item">
+                <div key={uiText(segment.label)} className="legend-item">
                   <span className="legend-color" style={{ background: segment.color }} />
-                  <span className="legend-label">{segment.label}</span>
+                  <span className="legend-label">{uiText(segment.label)}</span>
                   <strong>{segment.value}</strong>
                 </div>
               ))}
@@ -299,8 +300,8 @@ export default function UserAnalyticsOverview() {
 
         <div className="chart-card">
           <div className="chart-card__header">
-            <h3 style={{ fontWeight: 'bold' }}>Detection trend</h3>
-            <span>Last 6 months</span>
+            <h3 style={{ fontWeight: 'bold' }}>{uiText("Detection trend")}</h3>
+            <span>{uiText("Last 6 months")}</span>
           </div>
           <div className="bar-chart">
             {stats.monthlyTrend.map((month) => (
@@ -320,17 +321,17 @@ export default function UserAnalyticsOverview() {
       <div className="analytics-row">
         <div className="chart-card">
           <div className="chart-card__header">
-            <h3 style={{ fontWeight: 'bold' }}>Weekly detection pattern</h3>
-            <span>Last 7 days</span>
+            <h3 style={{ fontWeight: 'bold' }}>{uiText("Weekly detection pattern")}</h3>
+            <span>{uiText("Last 7 days")}</span>
           </div>
-          <svg viewBox="0 0 360 160" className="line-chart" preserveAspectRatio="none" aria-label="Weekly detection pattern">
+          <svg viewBox="0 0 360 160" className="line-chart" preserveAspectRatio="none" aria-label={uiText("Weekly detection pattern")}>
             <line x1="20" x2="340" y1="130" y2="130" className="axis-line" />
             <line x1="20" x2="20" y1="20" y2="130" className="axis-line" />
             {stats.weeklyTrend.map((point, index) => {
               const x = 30 + index * 45
               const y = 130 - (point.count / stats.trendMax) * 90
               return (
-                <g key={point.label}>
+                <g key={uiText(point.label)}>
                   <circle cx={x} cy={y} r="4" className="line-dot" />
                   <text x={x} y="150" textAnchor="middle" className="chart-label" style={{ fontSize: '10px', fill: '#607368' }}>{point.label.split(' ')[0]}</text>
                 </g>
@@ -345,10 +346,10 @@ export default function UserAnalyticsOverview() {
 
         <div className="chart-card">
           <div className="chart-card__header">
-            <h3 style={{ fontWeight: 'bold' }}>Average confidence</h3>
-            <span>Model certainty</span>
+            <h3 style={{ fontWeight: 'bold' }}>{uiText("Average confidence")}</h3>
+            <span>{uiText("Model certainty")}</span>
           </div>
-          <svg viewBox="0 0 360 160" className="line-chart" preserveAspectRatio="none" aria-label="Confidence trend">
+          <svg viewBox="0 0 360 160" className="line-chart" preserveAspectRatio="none" aria-label={uiText("Confidence trend")}>
             <line x1="20" x2="340" y1="130" y2="130" className="axis-line" />
             <line x1="20" x2="20" y1="20" y2="130" className="axis-line" />
             {stats.weeklyTrend.map((point, index) => {

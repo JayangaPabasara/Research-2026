@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { uiText } from '@/i18n/text'
 
 interface UseAudioRecorderResult {
   isRecording: boolean
@@ -44,7 +45,7 @@ export function useAudioRecorder(): UseAudioRecorderResult {
       timerRef.current = setInterval(() => setSeconds((s) => s + 1), 1000)
       setIsRecording(true)
     } catch {
-      setError('මයික්‍රෆෝන් අවසර ලබා දී නැත. | Microphone permission denied.')
+      setError(uiText('Microphone permission denied.'))
     }
   }, [])
 

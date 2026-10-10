@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useState, useEffect } from 'react'
 
 const STAGES = [
@@ -39,7 +40,7 @@ export default function AnalysisProgress({ isComplete, hasError }: AnalysisProgr
 
   return (
     <div className="analysis-progress">
-      <h3 style={{ margin: '0 0 1rem 0', fontWeight: 'bold' }}>Analyzing Field Data</h3>
+      <h3 style={{ margin: '0 0 1rem 0', fontWeight: 'bold' }}>{uiText("Analyzing Field Data")}</h3>
       <div className="stepper">
         {STAGES.map((stage, index) => {
           let statusClass = 'pending'
@@ -61,7 +62,7 @@ export default function AnalysisProgress({ isComplete, hasError }: AnalysisProgr
                 {statusClass === 'active' && <span className="pulse"></span>}
                 {statusClass === 'pending' && <span className="dot"></span>}
               </div>
-              <div className="step-label" style={{ fontSize: '0.9rem' }}>{stage}</div>
+              <div className="step-label" style={{ fontSize: '0.9rem' }}>{uiText(stage)}</div>
             </div>
           )
         })}

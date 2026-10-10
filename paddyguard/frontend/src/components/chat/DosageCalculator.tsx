@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useState } from 'react'
 import { Calculator, Droplets, Ruler } from 'lucide-react'
 import type { ChemicalEntry } from '@/lib/chatApi'
@@ -65,24 +66,24 @@ function ChemicalResultRow({ result, mode, areaUnit }: { result: ChemicalResult;
       <p className="text-sm font-bold text-forest">{chemical.name}</p>
 
       {!canCalculate ? (
-        <p className="mt-1 text-xs text-forest-muted">Dosage/coverage not specified — can't calculate for this one.</p>
+        <p className="mt-1 text-xs text-forest-muted">{uiText("Dosage/coverage not specified — can't calculate for this one.")}</p>
       ) : hasResult ? (
         <div className="px-3 py-2 mt-2 space-y-1 text-xs rounded-lg bg-amber-light/60">
           {chemicalNeeded && (
             <p className="flex items-center gap-1.5 font-semibold text-amber-dark">
               <Calculator className="h-3.5 w-3.5 shrink-0" />
-              Use {formatRange(chemicalNeeded)} {doseUnit}
+              {uiText("Use")}{formatRange(chemicalNeeded)} {doseUnit}
             </p>
           )}
           {mode === 'liters' && areaCovered !== null && (
-            <p className="text-forest-muted">Covers approx. {formatRange(areaCovered)} {unitLabel}</p>
+            <p className="text-forest-muted">{uiText("Covers approx.")}{formatRange(areaCovered)} {unitLabel}</p>
           )}
           {mode === 'area' && litersNeeded !== null && (
-            <p className="text-forest-muted">Needs approx. {formatRange(litersNeeded)} L of mixture</p>
+            <p className="text-forest-muted">{uiText("Needs approx.")}{formatRange(litersNeeded)} {uiText("L of mixture")}</p>
           )}
         </div>
       ) : (
-        <p className="mt-1 text-xs text-forest-muted">Enter a value above to calculate.</p>
+        <p className="mt-1 text-xs text-forest-muted">{uiText("Enter a value above to calculate.")}</p>
       )}
     </div>
   )
@@ -109,8 +110,7 @@ export default function DosageCalculator({ chemicals }: DosageCalculatorProps) {
     <div className="mt-2 space-y-2.5 rounded-xl border border-amber/30 bg-amber-light/30 p-2.5">
       <p className="flex items-center gap-1.5 px-0.5 text-xs font-bold text-forest">
         <Calculator className="h-3.5 w-3.5" />
-        Dosage Calculator
-      </p>
+        {uiText("Dosage Calculator")}</p>
 
       {/* Mode toggle — shared by every chemical listed below */}
       <div className="flex gap-1.5 rounded-lg bg-beige p-1">
@@ -122,8 +122,7 @@ export default function DosageCalculator({ chemicals }: DosageCalculatorProps) {
           }`}
         >
           <Droplets className="h-3.5 w-3.5" />
-          By water (L)
-        </button>
+          {uiText("By water (L)")}</button>
         <button
           type="button"
           onClick={() => setMode('area')}
@@ -132,15 +131,14 @@ export default function DosageCalculator({ chemicals }: DosageCalculatorProps) {
           }`}
         >
           <Ruler className="h-3.5 w-3.5" />
-          By field size
-        </button>
+          {uiText("By field size")}</button>
       </div>
 
       {/* Single shared input, applied to every chemical in the results list below */}
       <div className="flex items-end gap-2">
         {mode === 'liters' ? (
           <div className="flex-1">
-            <label className="mb-1 block text-[11px] font-medium text-forest-muted">Water/mixture (liters)</label>
+            <label className="mb-1 block text-[11px] font-medium text-forest-muted">{uiText("Water/mixture (liters)")}</label>
             <input
               type="number"
               min="0"
@@ -148,13 +146,13 @@ export default function DosageCalculator({ chemicals }: DosageCalculatorProps) {
               inputMode="decimal"
               value={litersInput}
               onChange={(e) => setLitersInput(e.target.value)}
-              placeholder="e.g. 16"
+              placeholder={uiText("e.g. 16")}
               className="h-9 w-full rounded-lg border border-beige bg-beige px-2.5 text-sm text-forest outline-none focus:border-forest"
             />
           </div>
         ) : (
           <div className="flex-1">
-            <label className="mb-1 block text-[11px] font-medium text-forest-muted">Field size</label>
+            <label className="mb-1 block text-[11px] font-medium text-forest-muted">{uiText("Field size")}</label>
             <input
               type="number"
               min="0"
@@ -162,29 +160,28 @@ export default function DosageCalculator({ chemicals }: DosageCalculatorProps) {
               inputMode="decimal"
               value={areaInput}
               onChange={(e) => setAreaInput(e.target.value)}
-              placeholder="e.g. 2"
+              placeholder={uiText("e.g. 2")}
               className="h-9 w-full rounded-lg border border-beige bg-beige px-2.5 text-sm text-forest outline-none focus:border-forest"
             />
           </div>
         )}
 
         <div className="shrink-0">
-          <label className="mb-1 block text-[11px] font-medium text-forest-muted">Unit</label>
+          <label className="mb-1 block text-[11px] font-medium text-forest-muted">{uiText("Unit")}</label>
           <select
             value={areaUnit}
             onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}
             className="px-2 text-sm border rounded-lg outline-none h-9 border-beige bg-beige text-forest focus:border-forest"
           >
-            <option value="acres">acres</option>
-            <option value="hectares">hectares</option>
+            <option value="acres">{uiText("acres")}</option>
+            <option value="hectares">{uiText("hectares")}</option>
           </select>
         </div>
       </div>
 
       {!anyCalculable && (
         <p className="px-0.5 text-xs text-forest-muted">
-          Dosage/coverage wasn't specified for these chemicals — showing names only.
-        </p>
+          {uiText("Dosage/coverage wasn't specified for these chemicals — showing names only.")}</p>
       )}
 
       {/* One row per suggested chemical — all driven by the single input above */}

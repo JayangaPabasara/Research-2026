@@ -1,3 +1,4 @@
+import { uiText } from '@/i18n/text'
 import { useEffect, useState } from 'react'
 import { Mic, Leaf, Bug, Search, Trash2, X } from 'lucide-react'
 import Card from '@/components/ui/Card'
@@ -9,6 +10,7 @@ import { getCases, getUserHistory, deleteCase, getLeafAuth } from '@/lib/leafApi
 import type { CaseSummary } from '@/lib/leafApi'
 import { diseaseSinhalaName, formatConfidence, formatDate } from '@/lib/disease'
 import toast from 'react-hot-toast'
+import ActivityTable from '@/components/community/ActivityTable'
 
 // Scoped Leaf imports
 import UserAnalyticsOverview from '@/components/leaf/UserAnalyticsOverview'
@@ -65,7 +67,7 @@ export default function History() {
       const data = isStaff ? await getCases(leafAuth?.username) : await getUserHistory()
       setLeafCases(Array.isArray(data) ? data : [])
     } catch {
-      toast.error('Failed to load leaf history')
+      toast.error(uiText("Failed to load leaf history"))
     } finally {
       setLoadingLeaf(false)
     }
@@ -75,9 +77,9 @@ export default function History() {
     try {
       await deleteCase(caseId)
       setLeafCases((prev) => prev.filter((c) => c.case_id !== caseId))
-      toast.success('Case removed successfully')
+      toast.success(uiText("Case removed successfully"))
     } catch {
-      toast.error('Failed to delete case')
+      toast.error(uiText("Failed to delete case"))
     }
   }
 
@@ -95,13 +97,14 @@ export default function History() {
 
   return (
     <div className="space-y-4">
+      {user && !isStaff && <ActivityTable />}
 
       {/* Tab bar with counts */}
       <div className="flex gap-2 rounded-xl bg-beige p-1">
         {([
-          { key: 'voice' as Tab, label: 'Voice', icon: Mic, count: myVoice.length },
-          { key: 'leaf' as Tab, label: 'Leaf', icon: Leaf, count: leafCases.length },
-          { key: 'pest' as Tab, label: 'Pest', icon: Bug, count: myPest.length },
+          { key: 'voice' as Tab, label: uiText("Voice"), icon: Mic, count: myVoice.length },
+          { key: 'leaf' as Tab, label: uiText("Leaf"), icon: Leaf, count: leafCases.length },
+          { key: 'pest' as Tab, label: uiText("Pest"), icon: Bug, count: myPest.length },
         ]).map((t) => (
           <button
             key={t.key}
@@ -129,7 +132,7 @@ export default function History() {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="රෝගය සොයන්න | Search disease..."
+          placeholder={uiText("රෝගය සොයන්න | Search disease...")}
           className="w-full rounded-xl border border-beige bg-white py-2.5 pl-9 pr-4
             text-sm text-forest placeholder-forest-muted outline-none
             focus:border-forest focus:ring-1 focus:ring-forest"
@@ -149,20 +152,17 @@ export default function History() {
         confirmClear === tab ? (
           <div className="flex items-center gap-2 rounded-xl bg-red-50 p-3">
             <span className="flex-1 text-sm text-red-600 font-sinhala">
-              ඉතිහාසය මකන්නද? | Clear all {tab} history?
-            </span>
+              {uiText("ඉතිහාසය මකන්නද? | Clear all")}{tab} {uiText("history?")}</span>
             <button
               onClick={handleClearAll}
               className="rounded-lg bg-red-soft px-3 py-1.5 text-xs font-bold text-white"
             >
-              ඔව් | Yes
-            </button>
+              {uiText("ඔව් | Yes")}</button>
             <button
               onClick={() => setConfirmClear(null)}
               className="rounded-lg bg-beige px-3 py-1.5 text-xs font-semibold text-forest"
             >
-              නෑ | No
-            </button>
+              {uiText("නෑ | No")}</button>
           </div>
         ) : (
           <div className="flex justify-end">
@@ -170,11 +170,10 @@ export default function History() {
               onClick={() => setConfirmClear(tab)}
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs
                 font-semibold text-red-soft hover:bg-red-50 transition-colors"
-              title="Clear all history for this tab"
+              title={uiText("Clear all history for this tab")}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              සියල්ල මකන්න | Clear All
-            </button>
+              {uiText("සියල්ල මකන්න | Clear All")}</button>
           </div>
         )
       )}
@@ -183,7 +182,7 @@ export default function History() {
       {tab === 'voice' && (
         filteredVoice.length === 0 ? (
           <EmptyState icon={Mic}
-            title={search ? 'No results found' : 'No voice diagnoses yet'} />
+            title={search ? uiText("No results found") : uiText("No voice diagnoses yet")} />
         ) : (
           <div className="space-y-3">
             {filteredVoice.map((v) => (
@@ -201,8 +200,8 @@ export default function History() {
                   onClick={() => deleteVoiceEntry(v.id)}
                   className="ml-1 rounded-lg p-1.5 text-forest-muted
                     hover:bg-red-50 hover:text-red-soft transition-colors"
-                  title="Delete this entry | මෙම වාර්තාව මකන්න"
-                  aria-label="Delete voice diagnosis entry"
+                  title={uiText("Delete this entry | මෙම වාර්තාව මකන්න")}
+                  aria-label={uiText("Delete voice diagnosis entry")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -218,9 +217,9 @@ export default function History() {
           <UserAnalyticsOverview />
 
           <div className="card">
-            <h2 className="text-lg font-bold text-forest mb-4" style={{ margin: '0 0 1rem 0' }}>Prediction History</h2>
+            <h2 className="text-lg font-bold text-forest mb-4" style={{ margin: '0 0 1rem 0' }}>{uiText("Prediction History")}</h2>
             {loadingLeaf ? (
-              <LoadingSpinner labelEn="Loading history..." />
+              <LoadingSpinner labelEn={uiText("Loading history...")} />
             ) : (
               <HistoryTable
                 cases={filteredLeaf}
@@ -241,7 +240,7 @@ export default function History() {
       {tab === 'pest' && (
         filteredPest.length === 0 ? (
           <EmptyState icon={Bug}
-            title={search ? 'No results found' : 'No pest detections yet'} />
+            title={search ? uiText("No results found") : uiText("No pest detections yet")} />
         ) : (
           <div className="space-y-3">
             {filteredPest.map((p) => (
@@ -259,8 +258,8 @@ export default function History() {
                   onClick={() => deletePestEntry(p.id)}
                   className="ml-1 rounded-lg p-1.5 text-forest-muted
                     hover:bg-red-50 hover:text-red-soft transition-colors"
-                  title="Delete this entry | මෙම වාර්තාව මකන්න"
-                  aria-label="Delete pest detection entry"
+                  title={uiText("Delete this entry | මෙම වාර්තාව මකන්න")}
+                  aria-label={uiText("Delete pest detection entry")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
