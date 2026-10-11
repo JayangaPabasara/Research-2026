@@ -2,12 +2,12 @@ import { uiText } from '@/i18n/text'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Wheat, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import LanguageSwitcher from '@/components/community/LanguageSwitcher'
+import AuthSplitLayout from '@/components/auth/AuthSplitLayout'
+import AuthLoginButton from '@/components/auth/AuthLoginButton'
 import toast from 'react-hot-toast'
 import Input from '@/components/ui/Input'
-import Button from '@/components/ui/Button'
 import { login, getProfile } from '@/lib/authApi'
 import { ensureLeafSession } from '@/lib/leafApi'
 import { useAuthStore } from '@/store/authStore'
@@ -52,22 +52,10 @@ export default function Login({ systemAdmin = false }: { systemAdmin?: boolean }
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4 py-10">
-      <LanguageSwitcher />
-      <div className="mb-6 flex flex-col items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-forest">
-          <Wheat className="h-7 w-7 text-amber" />
-        </div>
-        <h1 className="text-2xl font-bold text-forest">PaddyGuard AI</h1>
-        <p className="font-sinhala text-sm text-forest-muted">{uiText("ගොවිජන රෝග නිර්ණය පද්ධතිය")}</p>
-        <p className="text-xs text-forest-muted">{uiText("AI-Powered Rice Disease Diagnosis for Sri Lankan Farmers")}</p>
-      </div>
-
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h2 className="mb-6 font-sinhala text-xl font-bold text-forest">{t(systemAdmin ? 'adminLogin' : 'login')}</h2>
-
+    <AuthSplitLayout title={t(systemAdmin ? 'auth.adminLogin' : 'auth.farmerLogin')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
+            aria-describedby={error ? 'auth-error' : undefined}
             label={t('email')}
             sinhalaLabel
             type="email"
@@ -78,6 +66,7 @@ export default function Login({ systemAdmin = false }: { systemAdmin?: boolean }
             autoComplete="email"
           />
           <Input
+            aria-describedby={error ? 'auth-error' : undefined}
             label={t('password')}
             sinhalaLabel
             type="password"
@@ -87,18 +76,19 @@ export default function Login({ systemAdmin = false }: { systemAdmin?: boolean }
             autoComplete="current-password"
           />
 
-          {error && <p className="rounded-xl bg-red-soft/10 px-4 py-2 text-sm text-red-soft">{error}</p>}
+          {error && <p id="auth-error" role="alert" className="rounded-xl bg-red-soft/10 px-4 py-2 text-sm text-red-soft">{error}</p>}
 
-          <Button type="submit" size="lg" className="w-full font-sinhala" loading={loading}>
+          <AuthLoginButton loading={loading}>
             {t('login')}
-          </Button>
+          </AuthLoginButton>
         </form>
 
-        <p className="mt-5 text-center font-sinhala text-sm text-forest">
+        {!systemAdmin && <p className="mt-5 text-center font-sinhala text-sm text-forest">
           {uiText("ගිණුමක් නැද්ද?")}{' '}
           <Link to="/register" className="font-semibold text-amber">
             {uiText("ලියාපදිංචි වන්න")}</Link>
-        </p>
+        </p>}
+        {systemAdmin && <Link to="/login" className="mt-5 block text-center text-sm">{t('auth.back')}</Link>}
 
         <div className="mt-6 border-t border-beige pt-4 text-center space-y-2">
           <Link to="/staff-login" className="block text-xs text-forest-muted hover:text-forest">
@@ -108,7 +98,6 @@ export default function Login({ systemAdmin = false }: { systemAdmin?: boolean }
             <div className="overflow-hidden"><div className="space-y-3 p-3"><Link to="/pest-admin-login" className="block text-sm text-forest">{t('pestAdmin')}</Link><Link to="/system-admin-login" className="block text-sm text-forest">{t('adminLogin')}</Link></div></div>
           </div>
         </div>
-      </div>
-    </div>
+    </AuthSplitLayout>
   )
 }

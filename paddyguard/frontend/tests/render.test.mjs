@@ -125,3 +125,32 @@ test('received Treatment advice and chemical recommendations remain unchanged on
     assert.match(markup, /lang="en"/)
   }
 })
+
+
+test('authentication layout renders role headings, hides admin registration and preserves staff links', async () => {
+  await i18n.changeLanguage('en')
+  const Login = load(path.join(root, 'pages/Login.tsx')).default
+  const farmer = render(Login)
+  const admin = render(Login, { systemAdmin: true })
+  assert.match(farmer, /Farmer Login/)
+  assert.match(farmer, /href="\/register"/)
+  assert.match(admin, /System Admin Login/)
+  assert.doesNotMatch(admin, /href="\/register"/)
+  assert.match(admin, /href="\/staff-login"/)
+  assert.match(admin, /autocomplete="current-password"/i)
+  assert.match(admin, /aria-pressed="false"/)
+  assert.match(admin, /pg-auth-photo/)
+  assert.match(admin, /Rice disease diagnosis system/)
+  assert.equal(values.get('paddyguard_language'), 'en')
+})
+
+test('login button announces translated loading and prevents duplicate submission', async () => {
+  const Button = load(path.join(root, 'components/auth/AuthLoginButton.tsx')).default
+  await i18n.changeLanguage('en')
+  const markup = render(Button, { loading: true, children: 'Login' })
+  assert.match(markup, /disabled=""/)
+  assert.match(markup, /aria-busy="true"/)
+  assert.match(markup, /Signing in/)
+  await i18n.changeLanguage('si')
+  assert.ok(render(Button, { loading: true, children: 'Login' }).includes(i18n.t('auth.signingIn')))
+})

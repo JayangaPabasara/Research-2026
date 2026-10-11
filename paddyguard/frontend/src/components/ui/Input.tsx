@@ -30,14 +30,16 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={isPassword && show ? 'text' : type}
             className={`h-12 w-full rounded-xl border bg-beige px-4 text-forest placeholder:text-forest-muted/70
               outline-none transition-colors focus:border-forest
-              ${error ? 'border-red-soft' : 'border-beige'} ${className}`}
+              ${isPassword ? 'pr-14' : ''} ${error ? 'border-red-soft' : 'border-beige'} ${className}`}
             {...rest}
           />
           {isPassword && (
             <button
               type="button"
               onClick={() => setShow((s) => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-forest-muted"
+              className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-forest-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-forest"
+              aria-pressed={show}
+              aria-controls={inputId}
               aria-label={show ? uiText("Hide password") : uiText("Show password")}
             >
               {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

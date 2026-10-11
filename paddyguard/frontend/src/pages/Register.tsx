@@ -2,7 +2,7 @@ import { uiText } from '@/i18n/text'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Wheat, MapPin } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -11,7 +11,7 @@ import { ensureLeafSession } from '@/lib/leafApi'
 import { useAuthStore } from '@/store/authStore'
 import { getErrorMessage } from '@/lib/api'
 import { useTranslation } from 'react-i18next'
-import LanguageSwitcher from '@/components/community/LanguageSwitcher'
+import AuthSplitLayout from '@/components/auth/AuthSplitLayout'
 import { updateProfile } from '@/lib/communityApi'
 
 export default function Register() {
@@ -102,52 +102,48 @@ export default function Register() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-4 py-10">
-      <LanguageSwitcher />
-      <div className="mb-6 flex flex-col items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-forest">
-          <Wheat className="h-7 w-7 text-amber" />
-        </div>
-        <h1 className="text-2xl font-bold text-forest">PaddyGuard AI</h1>
-        <p className="font-sinhala text-sm text-forest-muted">{uiText("නව ගිණුමක් සාදන්න")}</p>
-      </div>
-
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-        <h2 className="mb-6 font-sinhala text-xl font-bold text-forest">{uiText("ලියාපදිංචි වන්න")}</h2>
-
+    <AuthSplitLayout title={t('auth.register')} subtitle={t('auth.registerHelp')}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
+            aria-describedby={error ? 'auth-error' : undefined}
             label={t('fullName')}
+            autoComplete="name"
             sinhalaLabel
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
           />
           <Input
+            aria-describedby={error ? 'auth-error' : undefined}
             label={t('email')}
             sinhalaLabel
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <Input
+            aria-describedby={error ? 'auth-error' : undefined}
             label={t('password')}
             sinhalaLabel
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
           <Input
+            aria-describedby={error ? 'auth-error' : undefined}
             label={uiText("මුරපදය තහවුරු කරන්න | Confirm Password")}
             sinhalaLabel
             type="password"
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
 
-          {error && <p className="rounded-xl bg-red-soft/10 px-4 py-2 text-sm text-red-soft">{error}</p>}
+          {error && <p id="auth-error" role="alert" className="rounded-xl bg-red-soft/10 px-4 py-2 text-sm text-red-soft">{error}</p>}
 
           <Button type="submit" size="lg" className="w-full font-sinhala" loading={loading}>
             {uiText("ලියාපදිංචි වන්න | Register")}</Button>
@@ -158,7 +154,6 @@ export default function Register() {
           <Link to="/login" className="font-semibold text-amber">
             {uiText("ඇතුළු වන්න")}</Link>
         </p>
-      </div>
 
       {showLocationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -195,6 +190,6 @@ export default function Register() {
           </div>
         </div>
       )}
-    </div>
+    </AuthSplitLayout>
   )
 }
