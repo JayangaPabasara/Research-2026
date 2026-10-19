@@ -107,7 +107,7 @@ export default function TreatmentChat() {
   const { t, i18n } = useTranslation()
   const [conversationLang, setConversationLang] = useState<'si' | 'en'>(() => i18n.language === 'en' ? 'en' : 'si')
   const [taxonomy, setTaxonomy] = useState<TaxonomyTopic[]>([])
-  const [restored, setRestored] = useState(false)
+  const [, setRestored] = useState(false)
   const [sessionExpired, setSessionExpired] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const pendingSessions = useChatStore(state => state.pendingSessions)
@@ -870,8 +870,8 @@ export default function TreatmentChat() {
         <span>{t('replyLanguageHelp')}</span>
       </div>
       {sendError && <p role="alert" className="mb-3 rounded-xl bg-red-soft/10 p-3 text-xs leading-relaxed text-red-soft">{sendError}</p>}
-      {(restored || sessionExpired) && <div role="status" className="mb-3 rounded-xl border border-amber/30 bg-amber-light/40 p-3 text-xs leading-relaxed text-forest">
-        <p>{t(sessionExpired ? 'expiredChatHelp' : 'restoredChatHelp')}</p>
+      {sessionExpired && <div role="status" className="mb-3 rounded-xl border border-amber/30 bg-amber-light/40 p-3 text-xs leading-relaxed text-forest">
+        <p>{t('expiredChatHelp')}</p>
         <Button className="mt-2" size="sm" variant="outline" onClick={() => setConfirmReset(true)}>{uiText('New chat')}</Button>
       </div>}
 
