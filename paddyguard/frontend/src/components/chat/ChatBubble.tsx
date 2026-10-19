@@ -47,7 +47,7 @@ export default function ChatBubble({
 
         {!isUser && message.chemicals && message.chemicals.length > 0 && (
           <div className="w-full">
-            <DosageCalculator chemicals={message.chemicals} />
+            <DosageCalculator chemicals={message.chemicals} language={message.language} />
           </div>
         )}
 

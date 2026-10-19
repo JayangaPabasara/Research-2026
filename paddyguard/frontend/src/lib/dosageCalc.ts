@@ -6,6 +6,10 @@
  *   "Approx. 1 acres"             -> { min: 1, max: 1, unit: "acres" }
  *   "Approx. 0.4 hectares"        -> { min: 0.4, max: 0.4, unit: "hectares" }
  *   "Not specified per 1L water"  -> null
+ *
+ * Important safety note: formulation strengths such as "75% WP", "20% SC",
+ * or "50 WG" are product-concentration labels, not application doses. They
+ * must not be interpreted as a quantity to mix into water.
  */
 export interface QuantityRange {
   min: number
@@ -15,15 +19,31 @@ export interface QuantityRange {
 
 const NUMBER_RANGE_RE = /(\d+(?:\.\d+)?)\s*(?:-|to|–)\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)/
 
+// Common pesticide formulation abbreviations. A leading percentage/number
+// followed by one of these labels is product strength/formulation, not a dose.
+const FORMULATION_STRENGTH_RE = /^\s*\d+(?:\.\d+)?\s*%?\s*(?:wp|sc|wg|ec|sl|sp|sg|df|wdg|gr|g|ds|fs|cs|ew|od|ul|me)\b/i
+
 export function parseQuantity(text: string | undefined | null): QuantityRange | null {
   if (!text) return null
 
-  const lower = text.toLowerCase()
-  if (lower.includes('not specified') || lower.includes('n/a') || !lower.trim()) {
+  const trimmed = text.trim()
+  if (!trimmed) return null
+
+  const lower = trimmed.toLowerCase()
+  if (
+    lower.includes('not specified') ||
+    lower.includes('n/a') ||
+    lower === 'unknown' ||
+    lower === 'none'
+  ) {
     return null
   }
 
-  const match = text.match(NUMBER_RANGE_RE)
+  // Never treat formulation strength (e.g. "75% WP" or "50 WG") as a
+  // recommended application rate. A real dose should specify a dose unit/rate.
+  if (FORMULATION_STRENGTH_RE.test(trimmed)) return null
+
+  const match = trimmed.match(NUMBER_RANGE_RE)
   if (!match) return null
 
   let min: number
@@ -35,11 +55,19 @@ export function parseQuantity(text: string | undefined | null): QuantityRange | 
     min = max = parseFloat(match[3])
   }
 
-  // Unit = the first alphabetic token right after the matched number(s),
-  // e.g. "g" out of "g per L water", or "acres" out of "acres".
-  const afterMatch = text.slice((match.index ?? 0) + match[0].length).trim()
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < 0 || max < min) {
+    return null
+  }
+
+  // Unit = the first alphabetic token immediately after the matched number(s),
+  // e.g. "g" from "2-3 g per L water", or "acres" from "1 acres".
+  const afterMatch = trimmed.slice((match.index ?? 0) + match[0].length).trim()
   const unitMatch = afterMatch.match(/^([a-zA-Z]+)/)
   const unit = unitMatch ? unitMatch[1] : ''
+
+  // A number without a unit is ambiguous (often a concentration label), so do
+  // not allow the calculator to present it as a dose or coverage quantity.
+  if (!unit) return null
 
   return { min, max, unit }
 }
@@ -57,6 +85,7 @@ export function scaleRange(range: QuantityRange, factor: number): { min: number;
 /** Formats a plain number or a {min,max} range into a short, rounded display string. */
 export function formatRange(value: number | { min: number; max: number }): string {
   const round = (n: number): string => {
+    if (!Number.isFinite(n)) return '0'
     if (n === 0) return '0'
     if (n >= 100) return Math.round(n).toString()
     if (n >= 10) return (Math.round(n * 10) / 10).toString()
